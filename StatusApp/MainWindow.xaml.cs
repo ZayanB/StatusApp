@@ -12,6 +12,9 @@ using System.IO;
 using System;
 using System.Windows.Media.TextFormatting;
 using System.Diagnostics;
+using System.Reflection.Metadata;
+
+
 
 
 namespace StatusApp
@@ -326,6 +329,75 @@ namespace StatusApp
             });
         }
 
+        //method for creating log file
+
+        private void CreateLogFile(string backupPath)
+        {
+            string sourceFolder = ConfigData.sourceFolder;
+            string logBackupFile = Path.Combine(ConfigData.backupFolder, backupPath, "Backup Log.txt");
+
+            List<string> logEntries = new List<string>
+            {
+                    $"BACKUP LOG {backupPath}",
+                    "===========================",
+                    ""
+            };
+
+            HashSet<string> sourceFolderItems = new HashSet<string>(Directory.EnumerateFileSystemEntries(sourceFolder, "*", SearchOption.AllDirectories).Select(Path.GetFileName));
+
+            foreach (var destination in ConfigData.destinationFolders)
+            {
+                string destinationPath = destination.path;
+                var commonFiles = ComparePaths(sourceFolder, destinationPath);
+
+                logEntries.Add($"From: {sourceFolder}");
+                logEntries.Add($"To: {destinationPath}");
+                logEntries.Add("------------------------------");
+
+                if (commonFiles.Count > 0)
+                {
+                    foreach (var commonFile in commonFiles)
+                    {
+                        logEntries.Add(commonFile);
+                    }
+
+                    logEntries.Add("");
+                }
+                else
+                {
+                    logEntries.Add("No common items replaced");
+                    logEntries.Add("");
+                }
+                
+                HashSet<string> copiedFiles = new HashSet<string>(sourceFolderItems.Except(commonFiles));
+
+                if(copiedFiles.Count > 0)
+                {
+                    logEntries.Add("Newly Copied Files:");
+                    foreach(var copiedFile in copiedFiles)
+                    {
+                        logEntries.Add(copiedFile);
+                    }
+                    logEntries.Add("");
+                }
+                else
+                {
+                    logEntries.Add("No new files copied.");
+                    logEntries.Add("");
+
+                }
+            }
+
+            // Write the structured log file
+            if (logEntries.Count > 3)
+            {
+                File.WriteAllLines(logBackupFile, logEntries);
+            }
+        
+        }
+
+
+
         //testing methods
         //private void TestCompare()
         //{
@@ -381,6 +453,8 @@ namespace StatusApp
                 string backupPath = CreateBackupFolder();
 
                 Backup(backupPath);
+
+                CreateLogFile(backupPath);
 
                 CopySourceToDestinations();
 
