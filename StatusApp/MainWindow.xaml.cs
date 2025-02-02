@@ -63,37 +63,22 @@ namespace StatusApp
             return newBackupFolder;
         }
 
-        //method to compare directories
-        private bool CompareDirectories(string sourceDir, string destinationDir)
+        //method to compare source and destination
+        public static List<string> ComparePaths(string path1, string path2)
         {
-            var sourceFiles = Directory.GetFiles(sourceDir).Select(Path.GetFileName).ToHashSet();
-            var destinationFiles = Directory.GetFiles(destinationDir).Select(Path.GetFileName).ToHashSet();
-
-            var sourceSubDirs = Directory.GetDirectories(sourceDir).Select(Path.GetFileName).ToHashSet();
-            var destinationSubDirs = Directory.GetDirectories(destinationDir).Select(Path.GetFileName).ToHashSet();
-
-            if (!sourceFiles.SetEquals(destinationFiles) || !sourceSubDirs.SetEquals(destinationSubDirs))
+            if (!Directory.Exists(path1) || !Directory.Exists(path2))
             {
-                return false;
+                throw new DirectoryNotFoundException("One or both of the specified paths do not exist.");
             }
 
-            foreach (var subDir in sourceSubDirs)
-            {
-                string sourceSubDirPath = Path.Combine(sourceDir, subDir);
-                string destSubDirPath = Path.Combine(destinationDir, subDir);
+            HashSet<string> itemsInPath1 = new HashSet<string>(Directory.EnumerateFileSystemEntries(path1, "*", SearchOption.AllDirectories).Select(Path.GetFileName));
+            HashSet<string> itemsInPath2 = new HashSet<string>(Directory.EnumerateFileSystemEntries(path2, "*", SearchOption.AllDirectories).Select(Path.GetFileName));
 
-                if (!CompareDirectories(sourceSubDirPath, destSubDirPath))
-                {
-                    return false;
-                }
-
-            }
-
-            return true;
+            return itemsInPath1.Intersect(itemsInPath2).ToList();
         }
 
         //methods to backup destination if same as source
-        private void Backup(out bool success,string backupPath)
+        private void Backup(out bool success, string backupPath)
         {
             success = false;
 
@@ -108,15 +93,8 @@ namespace StatusApp
                 txtBackupCount.Content = $" Backed Up {backupFolderCount} Folders & {backupFileCount} Files ";
             });
 
-            
-            string backupSubFolder = Path.Combine(backupFolder, backupPath);
-           
-            string destinationBackupFolder = Path.Combine(backupSubFolder, "Destination");
 
-            if (!Directory.Exists(backupSubFolder))
-            {
-                Directory.CreateDirectory(backupSubFolder);
-            }
+            string destinationBackupFolder = Path.Combine(backupFolder, backupPath, "Destination");
 
             foreach (var destination in ConfigData.destinationFolders)
             {
@@ -124,21 +102,21 @@ namespace StatusApp
 
                 if (Directory.Exists(destinationPath))
                 {
-                    if (CompareDirectories(sourceFolder, destinationPath))
+                    var commonFiles = ComparePaths(sourceFolder, destinationPath);
+
+                    if (commonFiles.Count() > 0)
                     {
                         if (!Directory.Exists(destinationBackupFolder))
                         {
                             Directory.CreateDirectory(destinationBackupFolder);
                         }
-
                         string destinationSpecificBackupFolder = Path.Combine(destinationBackupFolder, destination.name);
-
                         if (!Directory.Exists(destinationSpecificBackupFolder))
                         {
                             Directory.CreateDirectory(destinationSpecificBackupFolder);
                         }
 
-                        BackUpDirectory(destinationPath, destinationSpecificBackupFolder);
+                        BackupCommonItems(sourceFolder, destinationSpecificBackupFolder, commonFiles);
                     }
                     else
                     {
@@ -151,42 +129,60 @@ namespace StatusApp
                 }
 
             }
-            
+
 
             success = true;
         }
 
-        private void BackUpDirectory(string sourceDir, string destinationDir)
+        private void BackupCommonItems(string sourceDir, string destinationDir, List<string> commonItems)
         {
-
+   
             if (!Directory.Exists(destinationDir))
             {
                 Directory.CreateDirectory(destinationDir);
                 backupFolderCount++;
             }
 
-            foreach (string file in Directory.GetFiles(sourceDir))
+            // Copy common folders and files
+            foreach (string itemName in commonItems)
             {
-                string filename = Path.GetFileName(file);
-                string destFile = Path.Combine(destinationDir, filename);
-                File.Copy(file, destFile, overwrite: true);
-                backupFileCount++;
+                string sourceItemPath = Path.Combine(sourceDir, itemName);
+                string destItemPath = Path.Combine(destinationDir, itemName);
 
-                Dispatcher.Invoke(() =>
+                if (Directory.Exists(sourceItemPath)) // If it's a folder
                 {
-                    txtBackupCount.Content = $" Backed Up {backupFolderCount} Folders & {backupFileCount} Files ";
-                });
-            }
+                    // Copy the folder (even if empty)
+                    if (!Directory.Exists(destItemPath))
+                    {
+                        Directory.CreateDirectory(destItemPath);
+                        backupFolderCount++;
+                    }
 
-            foreach (string subDir in Directory.GetDirectories(sourceDir))
-            {
-                string subDirName = Path.GetFileName(subDir);
-                string destSubDir = Path.Combine(destinationDir, subDirName);
+                    // Recursion
+                    BackupCommonItems(sourceItemPath, destItemPath, commonItems);
+                }
+                else if (File.Exists(sourceItemPath)) 
+                {
+                    // Ensure the parent directory exists
+                    string parentDir = Path.GetDirectoryName(destItemPath);
+                    if (!Directory.Exists(parentDir))
+                    {
+                        Directory.CreateDirectory(parentDir);
+                        backupFolderCount++;
+                    }
 
-                BackUpDirectory(subDir, destSubDir);
+                    // Copy the file to the backup folder
+                    File.Copy(sourceItemPath, destItemPath, overwrite: true);
+                    backupFileCount++;
+
+                    Dispatcher.Invoke(() =>
+                    {
+                        txtBackupCount.Content = $" Backed Up {backupFolderCount} Folders & {backupFileCount} Files ";
+                    });
+                }
             }
         }
-
+      
         //methods to copy from source to destination
         private void CopySourceToDestinations(out bool success)
         {
@@ -321,15 +317,54 @@ namespace StatusApp
 
         }
 
+        //testing methods
+        //private void TestCompare()
+        //{
+        //    string sourceFolder = ConfigData.sourceFolder;
+
+        //    foreach (var destination in ConfigData.destinationFolders)
+        //    {
+        //        string destinationPath = destination.path;
+        //        var commonFiles = CompareDirectoriesNew(sourceFolder, destinationPath);
+        //        foreach (var commonFile in commonFiles)
+        //        {
+        //            Console.WriteLine(commonFile);
+        //        }
+        //    }
+
+        //}
+
+        
+
+        //private void TestCompareNew()
+        //{
+        //    string sourceFolder = ConfigData.sourceFolder;
+
+        //    foreach (var destination in ConfigData.destinationFolders)
+        //    {
+        //        string destinationPath = destination.path;
+        //        var commonFiles = ComparePaths(sourceFolder, destinationPath);
+        //        foreach (var commonFile in commonFiles)
+        //        {
+        //            Console.WriteLine(commonFile);
+        //        }
+        //    }
+
+        //}
+
         //run button method
         private void runBtn_Click(object sender, RoutedEventArgs e)
         {
+
+            //TestCompare();
+            //TestCompareNew();
+
             bool isSuccessful;
             bool isCopySuccessful;
 
             string backupPath = CreateBackupFolder();
 
-            Backup(out isSuccessful,backupPath);
+            Backup(out isSuccessful, backupPath);
 
             CopySourceToDestinations(out isCopySuccessful);
 
@@ -343,7 +378,7 @@ namespace StatusApp
             {
                 copyStatusText.Content = "Copy UnSuccessfull";
             }
-            
+
 
             if (isSuccessful)
             {
@@ -356,7 +391,7 @@ namespace StatusApp
             }
 
             CreateBackupSource(backupPath);
-        }      
+        }
 
     }
 }
