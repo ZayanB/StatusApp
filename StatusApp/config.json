@@ -1,0 +1,20 @@
+{
+    "sourceFolder": "C:\\Users\\Zayan Breiche\\dummy\\Source",
+    "destinationFolders": [
+        {
+            "name": "ServerX",
+            "path": "C:\\Users\\Zayan Breiche\\dummy\\Destinations\\ServerX"
+        },
+        {
+            "name": "ServerY",
+            "path": "C:\\Users\\Zayan Breiche\\dummy\\Destinations\\ServerY"
+        },
+        {
+            "name": "ServerZ",
+            "path": "C:\\Users\\Zayan Breiche\\dummy\\Destinations\\ServerZ"
+        }
+
+    ],
+    "backupFolder": "C:\\Users\\Zayan Breiche\\dummy\\Backup"
+
+}
