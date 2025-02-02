@@ -53,7 +53,7 @@ namespace StatusApp
         }
 
         //method to create backup folder with timestamp
-        private string createBackupFolder()
+        private string CreateBackupFolder()
         {
             string timestamp = DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss");
             string backupFolder = ConfigData.backupFolder;
@@ -93,7 +93,7 @@ namespace StatusApp
         }
 
         //methods to backup destination if same as source
-        private void backup(out bool success,string backupPath)
+        private void Backup(out bool success,string backupPath)
         {
             success = false;
 
@@ -138,7 +138,7 @@ namespace StatusApp
                             Directory.CreateDirectory(destinationSpecificBackupFolder);
                         }
 
-                        backUpDirectory(destinationPath, destinationSpecificBackupFolder);
+                        BackUpDirectory(destinationPath, destinationSpecificBackupFolder);
                     }
                     else
                     {
@@ -156,7 +156,7 @@ namespace StatusApp
             success = true;
         }
 
-        private void backUpDirectory(string sourceDir, string destinationDir)
+        private void BackUpDirectory(string sourceDir, string destinationDir)
         {
 
             if (!Directory.Exists(destinationDir))
@@ -183,7 +183,7 @@ namespace StatusApp
                 string subDirName = Path.GetFileName(subDir);
                 string destSubDir = Path.Combine(destinationDir, subDirName);
 
-                backUpDirectory(subDir, destSubDir);
+                BackUpDirectory(subDir, destSubDir);
             }
         }
 
@@ -259,7 +259,7 @@ namespace StatusApp
         }
 
         //methods to backup (empty) source
-        private void backupSource(string sourceFolder, string destinationFolder)
+        private void BackupSource(string sourceFolder, string destinationFolder)
         {
             try
             {
@@ -295,7 +295,7 @@ namespace StatusApp
             }
         }
 
-        private void createBackupSource(string backupPath)
+        private void CreateBackupSource(string backupPath)
         {
             string backupFolder = ConfigData.backupFolder;
             string sourceFolder = ConfigData.sourceFolder;
@@ -311,7 +311,7 @@ namespace StatusApp
                     Directory.CreateDirectory(sourceBackupFolder);
                 }
 
-                backupSource(sourceFolder, sourceBackupFolder);
+                BackupSource(sourceFolder, sourceBackupFolder);
             }
             else
             {
@@ -327,9 +327,9 @@ namespace StatusApp
             bool isSuccessful;
             bool isCopySuccessful;
 
-            string backupPath = createBackupFolder();
+            string backupPath = CreateBackupFolder();
 
-            backup(out isSuccessful,backupPath);
+            Backup(out isSuccessful,backupPath);
 
             CopySourceToDestinations(out isCopySuccessful);
 
@@ -355,7 +355,7 @@ namespace StatusApp
                 statusText.Content = "Back Up Failed";
             }
 
-            createBackupSource(backupPath);
+            CreateBackupSource(backupPath);
         }      
 
     }
