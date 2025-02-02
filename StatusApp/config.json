@@ -15,6 +15,7 @@
         }
 
     ],
-    "backupFolder": "C:\\Users\\Zayan Breiche\\dummy\\Backup"
+    "backupFolder": "C:\\Users\\Zayan Breiche\\dummy\\Backup",
+    "cleanupValue": "10"
 
 }
