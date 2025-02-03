@@ -77,12 +77,29 @@ namespace StatusApp
             return newBackupFolder;
         }
 
-        //method to compare source and destination
+        //method to compare source and destination name only
         private List<string> ComparePaths(string path1, string path2)
         {
 
             HashSet<string> itemsInPath1 = new HashSet<string>(Directory.EnumerateFileSystemEntries(path1, "*", SearchOption.AllDirectories).Select(Path.GetFileName));
             HashSet<string> itemsInPath2 = new HashSet<string>(Directory.EnumerateFileSystemEntries(path2, "*", SearchOption.AllDirectories).Select(Path.GetFileName));
+
+            List<string> commonItems = itemsInPath1.Intersect(itemsInPath2).ToList();
+
+            if (itemsInPath1.Count == 0)
+            {
+                throw new Exception($"Source Folder is Empty");
+            }
+
+            return commonItems;
+        }
+        
+        //method to compare source and destination full path
+        private List<string> CompareDirectory(string path1,string path2)
+        {
+            HashSet<string> itemsInPath1 = new HashSet<string>(Directory.EnumerateFileSystemEntries(path1, "*", SearchOption.AllDirectories).Select(path => Path.GetRelativePath(path1, path)));
+ 
+            HashSet<string> itemsInPath2 = new HashSet<string>(Directory.EnumerateFileSystemEntries(path2, "*", SearchOption.AllDirectories).Select(path => Path.GetRelativePath(path2, path)));
 
             List<string> commonItems = itemsInPath1.Intersect(itemsInPath2).ToList();
 
@@ -336,28 +353,34 @@ namespace StatusApp
             string sourceFolder = ConfigData.sourceFolder;
             string logBackupFile = Path.Combine(ConfigData.backupFolder, backupPath, "Backup Log.txt");
 
+            int lastUnderScioreIndex = backupPath.LastIndexOf("Backup_") + 7;
+            string timestamp = backupPath.Substring(lastUnderScioreIndex);
+
             List<string> logEntries = new List<string>
             {
-                    $"BACKUP LOG {backupPath}",
-                    "===========================",
+                    $"BACKUP LOG {timestamp}",
+                    "===================================",
                     ""
             };
-
-            HashSet<string> sourceFolderItems = new HashSet<string>(Directory.EnumerateFileSystemEntries(sourceFolder, "*", SearchOption.AllDirectories).Select(Path.GetFileName));
+            HashSet<string> sourceFolderItems = new HashSet<string>(Directory.EnumerateFileSystemEntries(sourceFolder , "*", SearchOption.AllDirectories).Select(path=>Path.GetRelativePath(sourceFolder,path)));
 
             foreach (var destination in ConfigData.destinationFolders)
             {
                 string destinationPath = destination.path;
-                var commonFiles = ComparePaths(sourceFolder, destinationPath);
+                var commonFiles = CompareDirectory(sourceFolder, destinationPath);
 
                 logEntries.Add($"From: {sourceFolder}");
                 logEntries.Add($"To: {destinationPath}");
-                logEntries.Add("------------------------------");
+                logEntries.Add("-------------------------------------------------------");
 
                 if (commonFiles.Count > 0)
                 {
+                    logEntries.Add("Replaced Files:");
+                
+
                     foreach (var commonFile in commonFiles)
                     {
+                        Console.WriteLine(commonFile);
                         logEntries.Add(commonFile);
                     }
 
@@ -365,16 +388,16 @@ namespace StatusApp
                 }
                 else
                 {
-                    logEntries.Add("No common items replaced");
+                    logEntries.Add("No common items to be replaced.");
                     logEntries.Add("");
                 }
-                
-                HashSet<string> copiedFiles = new HashSet<string>(sourceFolderItems.Except(commonFiles));
 
-                if(copiedFiles.Count > 0)
+                var copiedFiles = sourceFolderItems.Except(commonFiles);
+
+                if (copiedFiles.Any())
                 {
                     logEntries.Add("Newly Copied Files:");
-                    foreach(var copiedFile in copiedFiles)
+                    foreach (var copiedFile in copiedFiles)
                     {
                         logEntries.Add(copiedFile);
                     }
@@ -384,19 +407,20 @@ namespace StatusApp
                 {
                     logEntries.Add("No new files copied.");
                     logEntries.Add("");
-
                 }
+                logEntries.Add("-------------------------------------------------------");
+
             }
 
-            // Write the structured log file
-            if (logEntries.Count > 3)
-            {
+            Directory.CreateDirectory(Path.GetDirectoryName(logBackupFile));
+
+            
+            //if (logEntries.Count > 3)
+            //{
                 File.WriteAllLines(logBackupFile, logEntries);
-            }
-        
+            //}
+
         }
-
-
 
         //testing methods
         //private void TestCompare()
@@ -458,7 +482,7 @@ namespace StatusApp
 
                 CopySourceToDestinations();
 
-                CreateBackupSource(backupPath);
+                //CreateBackupSource(backupPath);
 
                 backupFolderCount = 0;
                 backupFileCount = 0;
