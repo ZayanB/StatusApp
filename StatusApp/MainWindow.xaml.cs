@@ -93,12 +93,12 @@ namespace StatusApp
 
             return commonItems;
         }
-        
+
         //method to compare source and destination full path
-        private List<string> CompareDirectory(string path1,string path2)
+        private List<string> CompareDirectory(string path1, string path2)
         {
             HashSet<string> itemsInPath1 = new HashSet<string>(Directory.EnumerateFileSystemEntries(path1, "*", SearchOption.AllDirectories).Select(path => Path.GetRelativePath(path1, path)));
- 
+
             HashSet<string> itemsInPath2 = new HashSet<string>(Directory.EnumerateFileSystemEntries(path2, "*", SearchOption.AllDirectories).Select(path => Path.GetRelativePath(path2, path)));
 
             List<string> commonItems = itemsInPath1.Intersect(itemsInPath2).ToList();
@@ -158,8 +158,9 @@ namespace StatusApp
                     {
                         Directory.CreateDirectory(destinationSpecificBackupFolder);
                     }
+                    bool rollback = false;
 
-                    BackupCommonItems(sourceFolder, destinationSpecificBackupFolder, commonFiles);
+                    BackupCommonItems(destinationPath, destinationSpecificBackupFolder, commonFiles, rollback);
                 }
                 else
                 {
@@ -171,10 +172,10 @@ namespace StatusApp
             }
         }
 
-        private void BackupCommonItems(string sourceDir, string destinationDir, List<string> commonItems)
+        private void BackupCommonItems(string sourceDir, string destinationDir, List<string> commonItems, bool rollback)
         {
 
-            if (!Directory.Exists(destinationDir))
+            if (!Directory.Exists(destinationDir) && !rollback)
             {
                 Directory.CreateDirectory(destinationDir);
                 backupFolderCount++;
@@ -192,12 +193,15 @@ namespace StatusApp
                     if (!Directory.Exists(destItemPath))
                     {
                         Directory.CreateDirectory(destItemPath);
-                        backupFolderCount++;
-                        replacedFolderCount++;
+                        if (!rollback)
+                        {
+                            backupFolderCount++;
+                            replacedFolderCount++;
+                        }
                     }
 
                     // Recursion
-                    BackupCommonItems(sourceItemPath, destItemPath, commonItems);
+                    BackupCommonItems(sourceItemPath, destItemPath, commonItems, rollback);
                 }
                 else if (File.Exists(sourceItemPath))
                 {
@@ -206,22 +210,31 @@ namespace StatusApp
                     if (!Directory.Exists(parentDir))
                     {
                         Directory.CreateDirectory(parentDir);
-                        backupFolderCount++;
-                        replacedFolderCount++;
+                        if (!rollback)
+                        {
+                            backupFolderCount++;
+                            replacedFolderCount++;
+                        }
                     }
 
                     // Copy the file to the backup folder
                     File.Copy(sourceItemPath, destItemPath, overwrite: true);
-                    backupFileCount++;
-                    replacedFileCount++;
+                    if (!rollback)
+                    {
+                        backupFileCount++;
+                        replacedFileCount++;
+                    }
 
                 }
 
             }
-            Dispatcher.Invoke(() =>
+            if (!rollback)
             {
-                txtReplacedCount.Content = $" Replaced {replacedFileCount} Files & {replacedFolderCount} Folders ";
-            });
+                Dispatcher.Invoke(() =>
+                {
+                    txtReplacedCount.Content = $" Replaced {replacedFileCount} Files & {replacedFolderCount} Folders ";
+                });
+            }
 
 
         }
@@ -347,7 +360,6 @@ namespace StatusApp
         }
 
         //method for creating log file
-
         private void CreateLogFile(string backupPath)
         {
             string sourceFolder = ConfigData.sourceFolder;
@@ -362,7 +374,7 @@ namespace StatusApp
                     "===================================",
                     ""
             };
-            HashSet<string> sourceFolderItems = new HashSet<string>(Directory.EnumerateFileSystemEntries(sourceFolder , "*", SearchOption.AllDirectories).Select(path=>Path.GetRelativePath(sourceFolder,path)));
+            HashSet<string> sourceFolderItems = new HashSet<string>(Directory.EnumerateFileSystemEntries(sourceFolder, "*", SearchOption.AllDirectories).Select(path => Path.GetRelativePath(sourceFolder, path)));
 
             foreach (var destination in ConfigData.destinationFolders)
             {
@@ -376,7 +388,7 @@ namespace StatusApp
                 if (commonFiles.Count > 0)
                 {
                     logEntries.Add("Replaced Files:");
-                
+
 
                     foreach (var commonFile in commonFiles)
                     {
@@ -414,12 +426,74 @@ namespace StatusApp
 
             Directory.CreateDirectory(Path.GetDirectoryName(logBackupFile));
 
-            
+
             //if (logEntries.Count > 3)
             //{
-                File.WriteAllLines(logBackupFile, logEntries);
+            File.WriteAllLines(logBackupFile, logEntries);
             //}
 
+        }
+
+        //method for rollback 
+
+        private void Rollback(string backupFolder)
+        {
+            string backupPath = Path.Combine(backupFolder, "Destination");
+            bool rollback = true;
+
+            foreach (var destination in ConfigData.destinationFolders)
+            {
+                string destinationPath = destination.path;
+                var commonFiles = ComparePaths(backupPath, destinationPath);
+
+                if (commonFiles.Any())
+                {
+                    string destinationSpecificBackupFolder = Path.Combine(backupPath, destination.name);
+                    BackupCommonItems(destinationSpecificBackupFolder,destinationPath,commonFiles, rollback);
+                }
+            }
+
+        }
+
+        //run button method
+        private void runBtn_Click(object sender, RoutedEventArgs e)
+        {
+
+            //TestCompare();
+            //TestCompareNew();
+
+            try
+            {
+
+                string backupPath = CreateBackupFolder();
+
+                Backup(backupPath);
+
+                CreateLogFile(backupPath);
+
+                CopySourceToDestinations();
+
+                //CreateBackupSource(backupPath);
+
+                backupFolderCount = 0;
+                backupFileCount = 0;
+                copyFolderCount = 0;
+                copyFileCount = 0;
+                replacedFolderCount = 0;
+                replacedFileCount = 0;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Failed. {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
+        }
+
+        private void rollbackBtn_Click(object sender, RoutedEventArgs e)
+        {
+            string backUpFolder = "C:\\Users\\Zayan Breiche\\dummy\\Backup\\Backup_2025-02-03_10-51-09";
+            Rollback(backUpFolder);
         }
 
         //testing methods
@@ -463,41 +537,6 @@ namespace StatusApp
         //    });
 
         //}
-
-        //run button method
-        private void runBtn_Click(object sender, RoutedEventArgs e)
-        {
-
-            //TestCompare();
-            //TestCompareNew();
-
-            try
-            {
-
-                string backupPath = CreateBackupFolder();
-
-                Backup(backupPath);
-
-                CreateLogFile(backupPath);
-
-                CopySourceToDestinations();
-
-                //CreateBackupSource(backupPath);
-
-                backupFolderCount = 0;
-                backupFileCount = 0;
-                copyFolderCount = 0;
-                copyFileCount = 0;
-                replacedFolderCount = 0;
-                replacedFileCount = 0;
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Failed. {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                return;
-            }
-
-        }
 
     }
 }

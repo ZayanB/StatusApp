@@ -63,14 +63,16 @@
                 <Label Grid.Row="3" x:Name="txtReplacedCount" FontSize="14" />
             </Grid>
 
-
-
-            <!--<Label Grid.Column="1" x:Name="txtBackupCount" Margin="0,20,0,0" FontSize="14"/>
-            <Label Grid.Column="1" x:Name="txtCopyCount" Margin="0,35,0,0" FontSize="14"/>
-            <Label Grid.Column="1" Margin="0,50,0,0" HorizontalAlignment="Center" FontSize="14" x:Name="statusText"/>
-            <Label Grid.Column="1" Margin="0,65,0,0" HorizontalAlignment="Center" FontSize="14" x:Name="copyStatusText"/>-->
-
         </Grid>
-        <Button  Grid.Row="2" Content="Start" FontSize="15" Name="runBtn" Margin="200,20,200,20"  Click="runBtn_Click"/>
+        <Grid Grid.Row="2">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition/>
+                <ColumnDefinition/>
+            </Grid.ColumnDefinitions>
+
+            <Button  Content="Start" FontSize="15" Name="runBtn"   Click="runBtn_Click" Margin="25,25,25,25"/>
+            <Button Grid.Column="1" Content="RollBack" FontSize="15" Name="rollbackBtn" Click="rollbackBtn_Click" Margin="25,25,25,25"/>
+        </Grid>
+        
     </Grid>
 </Window>
