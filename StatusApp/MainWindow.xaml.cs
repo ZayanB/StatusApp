@@ -24,6 +24,7 @@ namespace StatusApp
     /// </summary>
     public partial class MainWindow : Window
     {
+        public string SelectedBackupPath { get; private set; } = string.Empty;
         private int backupFolderCount = 0;
         private int backupFileCount = 0;
         private int copyFolderCount = 0;
@@ -44,6 +45,8 @@ namespace StatusApp
             DataContext = this;
 
             AddDestinationLabels();
+
+            LoadBackupOptions();
         }
         private void AddDestinationLabels()
         {
@@ -449,7 +452,7 @@ namespace StatusApp
                 if (commonFiles.Any())
                 {
                     string destinationSpecificBackupFolder = Path.Combine(backupPath, destination.name);
-                    BackupCommonItems(destinationSpecificBackupFolder,destinationPath,commonFiles, rollback);
+                    BackupCommonItems(destinationSpecificBackupFolder, destinationPath, commonFiles, rollback);
                 }
             }
 
@@ -492,8 +495,37 @@ namespace StatusApp
 
         private void rollbackBtn_Click(object sender, RoutedEventArgs e)
         {
-            string backUpFolder = "C:\\Users\\Zayan Breiche\\dummy\\Backup\\Backup_2025-02-03_10-51-09";
+            string backUpFolder = SelectedBackupPath;
+            //MessageBox.Show(backUpFolder);
             Rollback(backUpFolder);
+        }
+
+        private void LoadBackupOptions()
+        {
+            var backups = Directory.GetDirectories(ConfigData.backupFolder).OrderByDescending(dir => Directory.GetCreationTime(dir)).ToList();
+
+            if (backups.Count == 0)
+            {
+                MessageBox.Show("No backups found.");
+                return; 
+            }
+
+            BackupDropdown.ItemsSource=backups.Select(path=>Path.GetFileName(path)).ToList();
+
+            // Select the most recent backup by default
+            BackupDropdown.SelectedIndex = 0;
+            SelectedBackupPath = backups[0]; // Store the default selection
+        }
+
+        private void BackupDropdown_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+        {
+      
+            if (BackupDropdown.SelectedIndex >= 0)
+            {
+                string selectedFolderName = BackupDropdown.SelectedItem.ToString();
+                SelectedBackupPath = Path.Combine(ConfigData.backupFolder, selectedFolderName);
+                //Console.WriteLine(SelectedBackupPath);
+            }
         }
 
         //testing methods
