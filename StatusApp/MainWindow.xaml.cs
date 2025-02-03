@@ -51,7 +51,7 @@ namespace StatusApp
 
             LoadBackupOptions();
             this.Loaded += MainWindow_Loaded;
-            
+
         }
         private void MainWindow_Loaded(object sender, RoutedEventArgs e)
         {
@@ -419,7 +419,7 @@ namespace StatusApp
 
                 if (copiedFiles.Any())
                 {
-                    logEntries.Add("Newly Copied Files:");
+                    logEntries.Add("Added Files:");
                     foreach (var copiedFile in copiedFiles)
                     {
                         logEntries.Add(copiedFile);
@@ -576,16 +576,24 @@ namespace StatusApp
             if (backups.Count > cleanupValue)
             {
 
-                MessageBoxResult result = MessageBox.Show($"Do you want to delete the last {cleanupValue} backups", "Confirmation", MessageBoxButton.YesNo, MessageBoxImage.Question);
+                MessageBoxResult result = MessageBox.Show("Do you want to cleanup backups?", "Confirmation", MessageBoxButton.YesNo, MessageBoxImage.Question);
 
                 if (result == MessageBoxResult.Yes)
                 {
-                    backups = backups.Take(cleanupValue).ToList();
-                    foreach (var backup in backups)
+                    MessageBoxResult result2 = MessageBox.Show("This will keep the last 10 backups. Are you sure you want to proceed?", "Confirmation", MessageBoxButton.YesNo, MessageBoxImage.Question);
+                    if (result2 == MessageBoxResult.Yes)
                     {
-                        Directory.Delete(backup, true);
+                        backups = backups.Skip(cleanupValue).ToList();
+                        foreach (var backup in backups)
+                        {
+                            Directory.Delete(backup, true);
+                        }
+                        MessageBox.Show($"Deleted {backups.Count} backups","Success",MessageBoxButton.OK,MessageBoxImage.Information);
                     }
-                        MessageBox.Show($"Deleted the last {cleanupValue} backups");
+                    else
+                    {
+                        return;
+                    }
                 }
                 else
                 {
