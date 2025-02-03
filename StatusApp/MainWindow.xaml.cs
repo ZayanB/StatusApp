@@ -17,6 +17,7 @@ using System.Reflection.Metadata;
 
 
 
+
 namespace StatusApp
 {
     /// <summary>
@@ -46,7 +47,15 @@ namespace StatusApp
 
             AddDestinationLabels();
 
+            InitializeBackupFolderWatcher();
+
             LoadBackupOptions();
+            this.Loaded += MainWindow_Loaded;
+            
+        }
+        private void MainWindow_Loaded(object sender, RoutedEventArgs e)
+        {
+            CleanupBackups();
         }
         private void AddDestinationLabels()
         {
@@ -267,7 +276,7 @@ namespace StatusApp
                     {
                         CopyDirectory(sourceFolder, destinationPath);
 
-                        Console.WriteLine($"Copied from: {sourceFolder} to {destinationPath}");
+                        //Console.WriteLine($"Copied from: {sourceFolder} to {destinationPath}");
                     }
                     else
                     {
@@ -314,8 +323,7 @@ namespace StatusApp
             });
         }
 
-        //methods to backup (empty) source
-
+        //methods to backup source (empty it)
         private void CreateBackupSource(string backupPath)
         {
             string backupFolder = ConfigData.backupFolder;
@@ -341,7 +349,7 @@ namespace StatusApp
                 string fileName = Path.GetFileName(file);
                 string destFile = Path.Combine(destinationFolder, fileName);
                 File.Move(file, destFile);
-                Console.WriteLine($"Moved file: {fileName}");
+                //Console.WriteLine($"Moved file: {fileName}");
                 backupFileCount++;
             }
 
@@ -351,7 +359,7 @@ namespace StatusApp
                 string dirName = new DirectoryInfo(dir).Name;
                 string destDir = Path.Combine(destinationFolder, dirName);
                 Directory.Move(dir, destDir);
-                Console.WriteLine($"Moved directory: {dirName}");
+                //Console.WriteLine($"Moved directory: {dirName}");
                 backupFolderCount++;
             }
 
@@ -395,7 +403,7 @@ namespace StatusApp
 
                     foreach (var commonFile in commonFiles)
                     {
-                        Console.WriteLine(commonFile);
+                        //Console.WriteLine(commonFile);
                         logEntries.Add(commonFile);
                     }
 
@@ -438,7 +446,6 @@ namespace StatusApp
         }
 
         //method for rollback 
-
         private void Rollback(string backupFolder)
         {
             string backupPath = Path.Combine(backupFolder, "Destination");
@@ -455,6 +462,14 @@ namespace StatusApp
                     BackupCommonItems(destinationSpecificBackupFolder, destinationPath, commonFiles, rollback);
                 }
             }
+
+            int lastUnderScioreIndex = backupFolder.LastIndexOf("Backup_") + 7;
+            string timestamp = backupFolder.Substring(lastUnderScioreIndex);
+
+            Dispatcher.Invoke(() =>
+            {
+                txtRollbackStatus.Content = $" Rolled backup: {timestamp} back to destination";
+            });
 
         }
 
@@ -493,13 +508,14 @@ namespace StatusApp
 
         }
 
+        //roll back btn method
         private void rollbackBtn_Click(object sender, RoutedEventArgs e)
         {
             string backUpFolder = SelectedBackupPath;
-            //MessageBox.Show(backUpFolder);
             Rollback(backUpFolder);
         }
 
+        //drodown menu methods
         private void LoadBackupOptions()
         {
             var backups = Directory.GetDirectories(ConfigData.backupFolder).OrderByDescending(dir => Directory.GetCreationTime(dir)).ToList();
@@ -507,10 +523,10 @@ namespace StatusApp
             if (backups.Count == 0)
             {
                 MessageBox.Show("No backups found.");
-                return; 
+                return;
             }
 
-            BackupDropdown.ItemsSource=backups.Select(path=>Path.GetFileName(path)).ToList();
+            BackupDropdown.ItemsSource = backups.Select(path => Path.GetFileName(path)).ToList();
 
             // Select the most recent backup by default
             BackupDropdown.SelectedIndex = 0;
@@ -519,13 +535,64 @@ namespace StatusApp
 
         private void BackupDropdown_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
         {
-      
+
             if (BackupDropdown.SelectedIndex >= 0)
             {
                 string selectedFolderName = BackupDropdown.SelectedItem.ToString();
                 SelectedBackupPath = Path.Combine(ConfigData.backupFolder, selectedFolderName);
                 //Console.WriteLine(SelectedBackupPath);
             }
+        }
+
+        private FileSystemWatcher _backupFolderWatcher;
+
+        private void InitializeBackupFolderWatcher()
+        {
+            _backupFolderWatcher = new FileSystemWatcher
+            {
+                Path = ConfigData.backupFolder,
+                NotifyFilter = NotifyFilters.DirectoryName, // Watch for directory changes
+                EnableRaisingEvents = true
+            };
+
+            _backupFolderWatcher.Created += OnBackupFolderChanged;
+            _backupFolderWatcher.Deleted += OnBackupFolderChanged;
+            _backupFolderWatcher.Renamed += OnBackupFolderChanged;
+        }
+
+        private void OnBackupFolderChanged(object sender, FileSystemEventArgs e)
+        {
+            // Refresh the dropdown when a change is detected
+            Dispatcher.Invoke(LoadBackupOptions);
+        }
+
+        //Cleanup Method
+        private void CleanupBackups()
+        {
+            int cleanupValue = ConfigData.cleanupValue;
+
+            var backups = Directory.GetDirectories(ConfigData.backupFolder).OrderBy(dir => Directory.GetCreationTime(dir)).ToList();
+
+            if (backups.Count > cleanupValue)
+            {
+
+                MessageBoxResult result = MessageBox.Show($"Do you want to delete the last {cleanupValue} backups", "Confirmation", MessageBoxButton.YesNo, MessageBoxImage.Question);
+
+                if (result == MessageBoxResult.Yes)
+                {
+                    backups = backups.Take(cleanupValue).ToList();
+                    foreach (var backup in backups)
+                    {
+                        Directory.Delete(backup, true);
+                    }
+                        MessageBox.Show($"Deleted the last {cleanupValue} backups");
+                }
+                else
+                {
+                    return;
+                }
+            }
+
         }
 
         //testing methods
@@ -569,6 +636,7 @@ namespace StatusApp
         //    });
 
         //}
+
 
     }
 }
