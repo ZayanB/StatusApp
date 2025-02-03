@@ -13,6 +13,7 @@ using System;
 using System.Windows.Media.TextFormatting;
 using System.Diagnostics;
 using System.Reflection.Metadata;
+using System.Windows.Controls.Primitives;
 
 
 
@@ -512,7 +513,16 @@ namespace StatusApp
         private void rollbackBtn_Click(object sender, RoutedEventArgs e)
         {
             string backUpFolder = SelectedBackupPath;
-            Rollback(backUpFolder);
+
+            int lastUnderScioreIndex = backUpFolder.LastIndexOf("Backup_") + 7;
+            string timestamp = backUpFolder.Substring(lastUnderScioreIndex);
+
+            MessageBoxResult result = MessageBox.Show($"Are you sure you want to rollback backup {timestamp} back to destination?", "Confirmation", MessageBoxButton.YesNo, MessageBoxImage.Question);
+            if (result == MessageBoxResult.Yes)
+            {
+                Rollback(backUpFolder);
+            }
+
         }
 
         //drodown menu methods
@@ -588,7 +598,7 @@ namespace StatusApp
                         {
                             Directory.Delete(backup, true);
                         }
-                        MessageBox.Show($"Deleted {backups.Count} backups","Success",MessageBoxButton.OK,MessageBoxImage.Information);
+                        MessageBox.Show($"Deleted {backups.Count} backups", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
                     }
                     else
                     {
@@ -601,6 +611,13 @@ namespace StatusApp
                 }
             }
 
+        }
+
+
+
+        private void showRollbackBtn_Click(object sender, RoutedEventArgs e)
+        {
+            rollbackPopup.IsOpen = true;
         }
 
         //testing methods
