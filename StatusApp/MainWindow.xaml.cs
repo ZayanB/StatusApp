@@ -490,7 +490,7 @@ namespace StatusApp
             if (!File.Exists(logPath))
             {
                 File.WriteAllText(logPath, "Rollback Log\n");
-                File.AppendAllText(logPath, "------------------------------------------------\n");
+                File.AppendAllText(logPath, "-----------------------------------------------------------------------------\n");
 
             }
 
@@ -607,8 +607,8 @@ namespace StatusApp
         {
             int cleanupValue = ConfigData.cleanupValue;
 
-            var backups = Directory.GetDirectories(ConfigData.backupFolder).OrderBy(dir => Directory.GetCreationTime(dir)).ToList();
-            
+            var backups = Directory.GetDirectories(ConfigData.backupFolder).OrderByDescending(dir => Directory.GetCreationTime(dir)).ToList();
+
             if (backups.Count > cleanupValue)
             {
 
