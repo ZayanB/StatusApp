@@ -1,19 +1,7 @@
-﻿using System.Text;
+﻿using System.IO;
 using System.Text.Json;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.IO;
-using System;
-using System.Windows.Media.TextFormatting;
-using System.Diagnostics;
-using System.Reflection.Metadata;
-using System.Windows.Controls.Primitives;
 
 
 
@@ -61,13 +49,12 @@ namespace StatusApp
         //run button method
         private void runBtn_Click(object sender, RoutedEventArgs e)
         {
-
             try
             {
 
-                string backupPath = CreateBackupFolder();
+                string backupPath = CreateBackupFolderPath();
 
-                Backup(backupPath);
+                BackupDestination(backupPath);
 
                 CreateLogFile(backupPath);
 
@@ -103,14 +90,13 @@ namespace StatusApp
         }
 
         //method to create backup folder with timestamp
-        private string CreateBackupFolder()
+        private string CreateBackupFolderPath()
         {
             string timestamp = DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss");
             string backupFolder = ConfigData.backupFolder;
 
             if (!Directory.Exists(backupFolder))
             {
-                //throw new Exception($"Backup Folder does not exist: {backupFolder}");
                 throw new DirectoryNotFoundException($"Backup Folder does not exist: {backupFolder}");
             }
 
@@ -119,29 +105,12 @@ namespace StatusApp
             return newBackupFolder;
         }
 
-        //method to compare source and destination name only
-        private List<string> ComparePaths(string path1, string path2)
+        //method to compare source and destination
+        private List<string> CompareDirectoryPath(string path1, string path2)
         {
+            List<string> itemsInPath1 = Directory.EnumerateFileSystemEntries(path1, "*", SearchOption.AllDirectories).Select(path => Path.GetRelativePath(path1, path)).ToList();
 
-            HashSet<string> itemsInPath1 = new HashSet<string>(Directory.EnumerateFileSystemEntries(path1, "*", SearchOption.AllDirectories).Select(Path.GetFileName));
-            HashSet<string> itemsInPath2 = new HashSet<string>(Directory.EnumerateFileSystemEntries(path2, "*", SearchOption.AllDirectories).Select(Path.GetFileName));
-
-            List<string> commonItems = itemsInPath1.Intersect(itemsInPath2).ToList();
-
-            if (itemsInPath1.Count == 0)
-            {
-                throw new Exception($"Source Folder is Empty");
-            }
-
-            return commonItems;
-        }
-
-        //method to compare source and destination full path
-        private List<string> CompareDirectory(string path1, string path2)
-        {
-            HashSet<string> itemsInPath1 = new HashSet<string>(Directory.EnumerateFileSystemEntries(path1, "*", SearchOption.AllDirectories).Select(path => Path.GetRelativePath(path1, path)));
-
-            HashSet<string> itemsInPath2 = new HashSet<string>(Directory.EnumerateFileSystemEntries(path2, "*", SearchOption.AllDirectories).Select(path => Path.GetRelativePath(path2, path)));
+            List<string> itemsInPath2 = Directory.EnumerateFileSystemEntries(path2, "*", SearchOption.AllDirectories).Select(path => Path.GetRelativePath(path2, path)).ToList();
 
             List<string> commonItems = itemsInPath1.Intersect(itemsInPath2).ToList();
 
@@ -154,13 +123,12 @@ namespace StatusApp
         }
 
         //methods to backup destination if same as source
-        private void Backup(string backupPath)
+        private void BackupDestination(string backupPath)
         {
-
             string backupFolder = ConfigData.backupFolder;
             string sourceFolder = ConfigData.sourceFolder;
 
-            ////Check for all path existence before proceeding
+            //Check for all path existence before proceeding
             if (!Directory.Exists(sourceFolder))
             {
                 throw new DirectoryNotFoundException($"Source folder does not exist: {sourceFolder}");
@@ -184,12 +152,12 @@ namespace StatusApp
 
             }
 
+            //Compare source with all destinations to check for common files 
             foreach (var destination in ConfigData.destinationFolders)
             {
                 string destinationPath = destination.path;
 
-                var commonFiles = CompareDirectory(sourceFolder, destinationPath);
-
+                var commonFiles = CompareDirectoryPath(sourceFolder, destinationPath);
 
                 if (commonFiles.Count > 0)
                 {
@@ -202,9 +170,9 @@ namespace StatusApp
                     {
                         Directory.CreateDirectory(destinationSpecificBackupFolder);
                     }
-                    bool rollback = false;
+                    bool noRollback = false;
 
-                    BackupCommonItems(destinationPath, destinationSpecificBackupFolder, commonFiles, rollback);
+                    BackupCommonItems(destinationPath, destinationSpecificBackupFolder, commonFiles, noRollback);
                 }
                 else
                 {
@@ -218,7 +186,6 @@ namespace StatusApp
 
         private void BackupCommonItems(string sourceDir, string destinationDir, List<string> commonItems, bool rollback)
         {
-
 
             if (!Directory.Exists(destinationDir) && !rollback)
             {
@@ -282,6 +249,7 @@ namespace StatusApp
                 }
 
             }
+
             if (!rollback)
             {
                 Dispatcher.Invoke(() =>
@@ -305,7 +273,6 @@ namespace StatusApp
             string formattedTime = timestampNew[1].Replace("-", ":");
             timestamp = $"{timestampNew[0]}_{formattedTime}";
 
-
             List<string> logEntries = new List<string>
             {
                     $"BACKUP LOG {timestamp}",
@@ -313,12 +280,12 @@ namespace StatusApp
                     ""
             };
 
-            HashSet<string> sourceFolderItems = new HashSet<string>(Directory.EnumerateFileSystemEntries(sourceFolder, "*", SearchOption.AllDirectories).Select(path => Path.GetRelativePath(sourceFolder, path)));
+            List<string> sourceFolderItems = Directory.EnumerateFileSystemEntries(sourceFolder, "*", SearchOption.AllDirectories).Select(path => Path.GetRelativePath(sourceFolder, path)).ToList();
 
             foreach (var destination in ConfigData.destinationFolders)
             {
                 string destinationPath = destination.path;
-                var commonFiles = CompareDirectory(sourceFolder, destinationPath);
+                var commonFiles = CompareDirectoryPath(sourceFolder, destinationPath);
 
                 logEntries.Add($"From: {sourceFolder}");
                 logEntries.Add($"To: {destinationPath}");
@@ -366,7 +333,6 @@ namespace StatusApp
 
             File.WriteAllLines(logBackupFile, logEntries);
 
-
         }
 
         //methods to copy from source to destination
@@ -375,12 +341,12 @@ namespace StatusApp
             string sourceFolder = ConfigData.sourceFolder;
             int createdFileCount = 0, createdFolderCount = 0;
 
-            HashSet<string> sourceFolderItems = new HashSet<string>(Directory.EnumerateFileSystemEntries(sourceFolder, "*", SearchOption.AllDirectories).Select(path => Path.GetRelativePath(sourceFolder, path)));
+            List<string> sourceFolderItems = Directory.EnumerateFileSystemEntries(sourceFolder, "*", SearchOption.AllDirectories).Select(path => Path.GetRelativePath(sourceFolder, path)).ToList();
 
             foreach (var destination in ConfigData.destinationFolders)
             {
                 string destinationPath = destination.path;
-                var commonFiles = CompareDirectory(sourceFolder, destinationPath);
+                var commonFiles = CompareDirectoryPath(sourceFolder, destinationPath);
                 var createdFiles = sourceFolderItems.Except(commonFiles);
 
                 foreach (var createdFile in createdFiles)
@@ -481,16 +447,17 @@ namespace StatusApp
         {
             string backupPath = Path.Combine(backupFolder, "Destination");
             bool rollback = true;
+            Console.WriteLine("IN ROLL BACK METHOD:");
 
-            foreach (var destination in ConfigData.destinationFolders)
+            var backupFolderDirectories = Directory.GetDirectories(backupPath);
+
+            foreach (string dir in backupFolderDirectories)
             {
-                string destinationPath = destination.path;
-                var commonFiles = ComparePaths(backupPath, destinationPath);
-
-                if (commonFiles.Any())
+                foreach (var destination in ConfigData.destinationFolders)
                 {
-                    string destinationSpecificBackupFolder = Path.Combine(backupPath, destination.name);
-                    BackupCommonItems(destinationSpecificBackupFolder, destinationPath, commonFiles, rollback);
+                    string destinationPath = destination.path;
+                    var commonFiles = CompareDirectoryPath(Path.Combine(backupPath, dir), destinationPath);
+                    BackupCommonItems(Path.Combine(backupPath, destination.name), destinationPath, commonFiles, rollback);
                 }
             }
 
@@ -504,7 +471,6 @@ namespace StatusApp
             string formattedTimeStamp = $"{timeStampArr[0]}_{formattedTime}";
 
             MessageBox.Show($" Rolled backup {formattedTimeStamp} back to destination", "Rollback Success", MessageBoxButton.OK);
-
         }
 
         //method for rollback log
@@ -526,7 +492,6 @@ namespace StatusApp
             {
                 File.WriteAllText(logPath, "Rollback Log\n");
                 File.AppendAllText(logPath, "-----------------------------------------------------------------------------\n");
-
             }
 
             File.AppendAllLines(logPath, logs);
@@ -548,7 +513,6 @@ namespace StatusApp
                 string formattedTime = timestampMsg[1].Replace('-', ':');
                 formattedTimesStamp = $"{timestampMsg[0]}_{formattedTime}";
             }
-
 
             MessageBoxResult result = MessageBox.Show($"Are you sure you want to rollback backup {formattedTimesStamp} back to destination?", "Confirmation", MessageBoxButton.YesNo, MessageBoxImage.Question);
             if (result == MessageBoxResult.Yes)
@@ -594,7 +558,7 @@ namespace StatusApp
             _backupFolderWatcher = new FileSystemWatcher
             {
                 Path = ConfigData.backupFolder,
-                NotifyFilter = NotifyFilters.DirectoryName, // Watch for directory changes
+                NotifyFilter = NotifyFilters.DirectoryName, // Watch for directory changes, create,delet,or rename
                 EnableRaisingEvents = true
             };
 
