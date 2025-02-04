@@ -467,10 +467,36 @@ namespace StatusApp
             int lastUnderScioreIndex = backupFolder.LastIndexOf("Backup_") + 7;
             string timestamp = backupFolder.Substring(lastUnderScioreIndex);
 
+            CreateRollbackLog(timestamp);
+
             Dispatcher.Invoke(() =>
             {
                 txtRollbackStatus.Content = $" Rolled backup: {timestamp} back to destination";
             });
+
+        }
+
+        //method for rollback log
+        private void CreateRollbackLog(string timestamp)
+        {
+            string logPath = Path.Combine(ConfigData.backupFolder, "Rollback Log.txt");
+            string rollbackTime = DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss");
+
+            List<string> logs = new List<string>
+            {
+                $"Rolled Backup {timestamp} back to destination on {rollbackTime}"
+            };
+
+            if (!File.Exists(logPath))
+            {
+                File.WriteAllText(logPath, "Rollback Log\n");
+                File.AppendAllText(logPath, "------------------------------------------------\n");
+
+            }
+
+            File.AppendAllLines(logPath, logs);
+
+
 
         }
 
@@ -582,7 +608,7 @@ namespace StatusApp
             int cleanupValue = ConfigData.cleanupValue;
 
             var backups = Directory.GetDirectories(ConfigData.backupFolder).OrderBy(dir => Directory.GetCreationTime(dir)).ToList();
-
+            
             if (backups.Count > cleanupValue)
             {
 
@@ -612,8 +638,6 @@ namespace StatusApp
             }
 
         }
-
-
 
         private void showRollbackBtn_Click(object sender, RoutedEventArgs e)
         {
