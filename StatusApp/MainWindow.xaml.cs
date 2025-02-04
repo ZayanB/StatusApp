@@ -29,10 +29,9 @@ namespace StatusApp
         public string SelectedBackupPath { get; private set; } = string.Empty;
         private int backupFolderCount = 0;
         private int backupFileCount = 0;
-        private int copyFolderCount = 0;
-        private int copyFileCount = 0;
         private int replacedFolderCount = 0;
         private int replacedFileCount = 0;
+
         public Config ConfigData { get; set; }
         public MainWindow()
         {
@@ -58,6 +57,37 @@ namespace StatusApp
         {
             CleanupBackups();
         }
+
+        //run button method
+        private void runBtn_Click(object sender, RoutedEventArgs e)
+        {
+
+            try
+            {
+
+                string backupPath = CreateBackupFolder();
+
+                Backup(backupPath);
+
+                CreateLogFile(backupPath);
+
+                CopySourceToDestinations();
+
+                //CreateBackupSource(backupPath);
+
+                backupFolderCount = 0;
+                backupFileCount = 0;
+                replacedFolderCount = 0;
+                replacedFileCount = 0;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Failed. {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
+        }
+
         private void AddDestinationLabels()
         {
             foreach (var destination in ConfigData.destinationFolders)
@@ -131,6 +161,7 @@ namespace StatusApp
             string backupFolder = ConfigData.backupFolder;
             string sourceFolder = ConfigData.sourceFolder;
 
+            ////Check for all path existence before proceeding
             if (!Directory.Exists(sourceFolder))
             {
                 throw new DirectoryNotFoundException($"Source folder does not exist: {sourceFolder}");
@@ -158,7 +189,8 @@ namespace StatusApp
             {
                 string destinationPath = destination.path;
 
-                var commonFiles = ComparePaths(sourceFolder, destinationPath);
+                var commonFiles = CompareDirectory(sourceFolder, destinationPath);
+
 
                 if (commonFiles.Count > 0)
                 {
@@ -187,6 +219,7 @@ namespace StatusApp
 
         private void BackupCommonItems(string sourceDir, string destinationDir, List<string> commonItems, bool rollback)
         {
+
 
             if (!Directory.Exists(destinationDir) && !rollback)
             {
@@ -240,135 +273,22 @@ namespace StatusApp
 
                 }
 
+                // Update the UI with the counts
+                Dispatcher.Invoke(() =>
+                {
+                    txtBackupCount.Content = $" Backed Up {backupFolderCount} Folders & {backupFileCount} Files ";
+                });
+
             }
             if (!rollback)
             {
                 Dispatcher.Invoke(() =>
                 {
-                    txtReplacedCount.Content = $" Replaced {replacedFileCount} Files & {replacedFolderCount} Folders ";
+                    txtReplacedCount.Content = $" Replaced {replacedFolderCount} Folders & {replacedFileCount} Files";
                 });
             }
 
 
-        }
-
-        //methods to copy from source to destination
-        private void CopySourceToDestinations()
-        {
-
-            string sourceFolder = ConfigData.sourceFolder;
-
-            copyFolderCount = 0;
-            copyFileCount = 0;
-
-            Dispatcher.Invoke(() =>
-            {
-                txtCopyCount.Content = $" Copied {copyFolderCount} Folders & {copyFileCount} Files ";
-            });
-
-
-            if (Directory.Exists(sourceFolder))
-            {
-                foreach (var destination in ConfigData.destinationFolders)
-                {
-                    string destinationPath = destination.path;
-
-                    if (Directory.Exists(destinationPath))
-                    {
-                        CopyDirectory(sourceFolder, destinationPath);
-
-                        //Console.WriteLine($"Copied from: {sourceFolder} to {destinationPath}");
-                    }
-                    else
-                    {
-                        MessageBox.Show($"Destination folder does not exist: {destinationPath}");
-                    }
-                }
-            }
-            else
-            {
-                MessageBox.Show($"Source folder does not exist: {sourceFolder}");
-            }
-
-        }
-
-        private void CopyDirectory(string sourceDir, string destinationDir)
-        {
-
-            if (!Directory.Exists(destinationDir))
-            {
-                Directory.CreateDirectory(destinationDir);
-            }
-
-            foreach (string file in Directory.GetFiles(sourceDir))
-            {
-                string fileName = Path.GetFileName(file);
-                string destFile = Path.Combine(destinationDir, fileName);
-                File.Copy(file, destFile, overwrite: true);
-                copyFileCount++;
-
-            }
-
-            foreach (string subDir in Directory.GetDirectories(sourceDir))
-            {
-                string subDirName = Path.GetFileName(subDir);
-                string destSubDir = Path.Combine(destinationDir, subDirName);
-                CopyDirectory(subDir, destSubDir);
-
-                copyFolderCount++;
-            }
-
-            Dispatcher.Invoke(() =>
-            {
-                txtCopyCount.Content = $" Copied {copyFolderCount} Folders & {copyFileCount} Files ";
-            });
-        }
-
-        //methods to backup source (empty it)
-        private void CreateBackupSource(string backupPath)
-        {
-            string backupFolder = ConfigData.backupFolder;
-            string sourceFolder = ConfigData.sourceFolder;
-
-            string backupSubFolder = Path.Combine(backupFolder, backupPath);
-            string sourceBackupFolder = Path.Combine(backupSubFolder, "Source");
-
-            // Backup the source 
-
-            if (!Directory.Exists(sourceBackupFolder))
-            {
-                Directory.CreateDirectory(sourceBackupFolder);
-            }
-            BackupSource(sourceFolder, sourceBackupFolder);
-        }
-        private void BackupSource(string sourceFolder, string destinationFolder)
-        {
-
-            // Move all files
-            foreach (string file in Directory.GetFiles(sourceFolder))
-            {
-                string fileName = Path.GetFileName(file);
-                string destFile = Path.Combine(destinationFolder, fileName);
-                File.Move(file, destFile);
-                //Console.WriteLine($"Moved file: {fileName}");
-                backupFileCount++;
-            }
-
-            // Move all directories
-            foreach (string dir in Directory.GetDirectories(sourceFolder))
-            {
-                string dirName = new DirectoryInfo(dir).Name;
-                string destDir = Path.Combine(destinationFolder, dirName);
-                Directory.Move(dir, destDir);
-                //Console.WriteLine($"Moved directory: {dirName}");
-                backupFolderCount++;
-            }
-
-            // Update the UI with the counts
-            Dispatcher.Invoke(() =>
-            {
-                txtBackupCount.Content = $" Backed Up {backupFolderCount} Folders & {backupFileCount} Files ";
-            });
         }
 
         //method for creating log file
@@ -386,6 +306,7 @@ namespace StatusApp
                     "===================================",
                     ""
             };
+
             HashSet<string> sourceFolderItems = new HashSet<string>(Directory.EnumerateFileSystemEntries(sourceFolder, "*", SearchOption.AllDirectories).Select(path => Path.GetRelativePath(sourceFolder, path)));
 
             foreach (var destination in ConfigData.destinationFolders)
@@ -416,20 +337,20 @@ namespace StatusApp
                     logEntries.Add("");
                 }
 
-                var copiedFiles = sourceFolderItems.Except(commonFiles);
+                var newFiles = sourceFolderItems.Except(commonFiles);
 
-                if (copiedFiles.Any())
+                if (newFiles.Any())
                 {
                     logEntries.Add("Added Files:");
-                    foreach (var copiedFile in copiedFiles)
+                    foreach (var newFile in newFiles)
                     {
-                        logEntries.Add(copiedFile);
+                        logEntries.Add(newFile);
                     }
                     logEntries.Add("");
                 }
                 else
                 {
-                    logEntries.Add("No new files copied.");
+                    logEntries.Add("No new files added.");
                     logEntries.Add("");
                 }
                 logEntries.Add("-------------------------------------------------------");
@@ -438,12 +359,106 @@ namespace StatusApp
 
             Directory.CreateDirectory(Path.GetDirectoryName(logBackupFile));
 
-
-            //if (logEntries.Count > 3)
-            //{
             File.WriteAllLines(logBackupFile, logEntries);
-            //}
 
+
+        }
+
+        //methods to copy from source to destination
+        private void CopySourceToDestinations()
+        {
+            string sourceFolder = ConfigData.sourceFolder;
+            int createdFileCount = 0, createdFolderCount = 0;
+
+            HashSet<string> sourceFolderItems = new HashSet<string>(Directory.EnumerateFileSystemEntries(sourceFolder, "*", SearchOption.AllDirectories).Select(path => Path.GetRelativePath(sourceFolder, path)));
+
+            foreach (var destination in ConfigData.destinationFolders)
+            {
+                string destinationPath = destination.path;
+                var commonFiles = CompareDirectory(sourceFolder, destinationPath);
+                var createdFiles = sourceFolderItems.Except(commonFiles);
+
+                foreach (var createdFile in createdFiles)
+                {
+
+                    if (Path.HasExtension(createdFile))
+                    {
+                        createdFileCount++;
+
+                    }
+                    else
+                    {
+                        createdFolderCount++;
+                    }
+                }
+
+                Dispatcher.Invoke(() =>
+                {
+                    txtCopyCount.Content = $" Created {createdFolderCount} Folders & {createdFileCount} Files ";
+                });
+
+                CopyDirectory(sourceFolder, destinationPath);
+            }
+        }
+
+        private void CopyDirectory(string sourceDir, string destinationDir)
+        {
+            if (!Directory.Exists(destinationDir))
+            {
+                Directory.CreateDirectory(destinationDir);
+            }
+
+            foreach (string file in Directory.GetFiles(sourceDir))
+            {
+                string fileName = Path.GetFileName(file);
+                string destFile = Path.Combine(destinationDir, fileName);
+                File.Copy(file, destFile, overwrite: true);
+            }
+
+            foreach (string subDir in Directory.GetDirectories(sourceDir))
+            {
+                string subDirName = Path.GetFileName(subDir);
+                string destSubDir = Path.Combine(destinationDir, subDirName);
+                CopyDirectory(subDir, destSubDir);
+            }
+        }
+
+        //methods to backup source (empty it)
+        private void CreateBackupSource(string backupPath)
+        {
+            string backupFolder = ConfigData.backupFolder;
+            string sourceFolder = ConfigData.sourceFolder;
+
+            string backupSubFolder = Path.Combine(backupFolder, backupPath);
+            string sourceBackupFolder = Path.Combine(backupSubFolder, "Source");
+
+            // Backup the source 
+
+            if (!Directory.Exists(sourceBackupFolder))
+            {
+                Directory.CreateDirectory(sourceBackupFolder);
+            }
+            BackupSource(sourceFolder, sourceBackupFolder);
+        }
+        private void BackupSource(string sourceFolder, string destinationFolder)
+        {
+            // Move all files
+            foreach (string file in Directory.GetFiles(sourceFolder))
+            {
+                string fileName = Path.GetFileName(file);
+                string destFile = Path.Combine(destinationFolder, fileName);
+                File.Move(file, destFile);
+                backupFileCount++;
+            }
+
+            // Move all directories
+            foreach (string dir in Directory.GetDirectories(sourceFolder))
+            {
+                string dirName = new DirectoryInfo(dir).Name;
+                string destDir = Path.Combine(destinationFolder, dirName);
+                Directory.Move(dir, destDir);
+                backupFolderCount++;
+            }
         }
 
         //method for rollback 
@@ -469,10 +484,7 @@ namespace StatusApp
 
             CreateRollbackLog(timestamp);
 
-            Dispatcher.Invoke(() =>
-            {
-                txtRollbackStatus.Content = $" Rolled backup: {timestamp} back to destination";
-            });
+            MessageBox.Show($" Rolled backup: {timestamp} back to destination", "Rollback Success", MessageBoxButton.OK);
 
         }
 
@@ -495,43 +507,6 @@ namespace StatusApp
             }
 
             File.AppendAllLines(logPath, logs);
-
-
-
-        }
-
-        //run button method
-        private void runBtn_Click(object sender, RoutedEventArgs e)
-        {
-
-            //TestCompare();
-            //TestCompareNew();
-
-            try
-            {
-
-                string backupPath = CreateBackupFolder();
-
-                Backup(backupPath);
-
-                CreateLogFile(backupPath);
-
-                CopySourceToDestinations();
-
-                //CreateBackupSource(backupPath);
-
-                backupFolderCount = 0;
-                backupFileCount = 0;
-                copyFolderCount = 0;
-                copyFileCount = 0;
-                replacedFolderCount = 0;
-                replacedFileCount = 0;
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Failed. {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                return;
-            }
 
         }
 
@@ -616,7 +591,7 @@ namespace StatusApp
 
                 if (result == MessageBoxResult.Yes)
                 {
-                    MessageBoxResult result2 = MessageBox.Show("This will keep the last 10 backups. Are you sure you want to proceed?", "Confirmation", MessageBoxButton.YesNo, MessageBoxImage.Question);
+                    MessageBoxResult result2 = MessageBox.Show("This will keep the most recent 10 backups. Are you sure you want to proceed?", "Confirmation", MessageBoxButton.YesNo, MessageBoxImage.Question);
                     if (result2 == MessageBoxResult.Yes)
                     {
                         backups = backups.Skip(cleanupValue).ToList();
@@ -643,49 +618,6 @@ namespace StatusApp
         {
             rollbackPopup.IsOpen = true;
         }
-
-        //testing methods
-        //private void TestCompare()
-        //{
-        //    string sourceFolder = ConfigData.sourceFolder;
-
-        //    foreach (var destination in ConfigData.destinationFolders)
-        //    {
-        //        string destinationPath = destination.path;
-        //        var commonFiles = CompareDirectoriesNew(sourceFolder, destinationPath);
-        //        foreach (var commonFile in commonFiles)
-        //        {
-        //            Console.WriteLine(commonFile);
-        //        }
-        //    }
-
-        //}
-
-
-
-        //private void TestCompareNew()
-        //{
-        //    string sourceFolder = ConfigData.sourceFolder;
-
-
-        //    foreach (var destination in ConfigData.destinationFolders)
-        //    {
-        //        string destinationPath = destination.path;
-        //        var commonFiles = ComparePaths(sourceFolder, destinationPath);
-        //        foreach (var commonFile in commonFiles)
-        //        {
-        //            replacedItems++;
-        //        }
-        //    }
-
-        //    Console.WriteLine($"the replaced items are: {replacedItems}");
-        //    Dispatcher.Invoke(() =>
-        //    {
-        //        txtReplacedCount.Content = $" Replaced {replacedItems} Files ";
-        //    });
-
-        //}
-
 
     }
 }
