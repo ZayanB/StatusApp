@@ -274,10 +274,13 @@ namespace StatusApp
                 }
 
                 // Update the UI with the counts
-                Dispatcher.Invoke(() =>
+                if (!rollback)
                 {
-                    txtBackupCount.Content = $" Backed Up {backupFolderCount} Folders & {backupFileCount} Files ";
-                });
+                    Dispatcher.Invoke(() =>
+                    {
+                        txtBackupCount.Content = $" Backed Up {backupFolderCount} Folders & {backupFileCount} Files ";
+                    });
+                }
 
             }
             if (!rollback)
@@ -392,10 +395,20 @@ namespace StatusApp
                     }
                 }
 
-                Dispatcher.Invoke(() =>
+                if (createdFileCount > 0 || createdFolderCount > 0)
                 {
-                    txtCopyCount.Content = $" Created {createdFolderCount} Folders & {createdFileCount} Files ";
-                });
+                    Dispatcher.Invoke(() =>
+                    {
+                        txtCopyCount.Content = $" Created {createdFolderCount} Folders & {createdFileCount} Files ";
+                    });
+                }
+                else
+                {
+                    Dispatcher.Invoke(() =>
+                    {
+                        txtCopyCount.Content = " All files are similar. No new files to create ";
+                    });
+                }
 
                 CopyDirectory(sourceFolder, destinationPath);
             }
@@ -484,7 +497,7 @@ namespace StatusApp
 
             CreateRollbackLog(timestamp);
 
-            MessageBox.Show($" Rolled backup: {timestamp} back to destination", "Rollback Success", MessageBoxButton.OK);
+            MessageBox.Show($" Rolled backup {timestamp} back to destination", "Rollback Success", MessageBoxButton.OK);
 
         }
 
@@ -533,15 +546,17 @@ namespace StatusApp
 
             if (backups.Count == 0)
             {
-                MessageBox.Show("No backups found.");
+                BackupDropdown.ItemsSource = new List<string> { "No backups found" };
+                BackupDropdown.SelectedIndex = 0;
+                SelectedBackupPath = null;
                 return;
             }
 
-            BackupDropdown.ItemsSource = backups.Select(path => Path.GetFileName(path)).ToList();
 
+            BackupDropdown.ItemsSource = backups.Select(path => Path.GetFileName(path)).ToList();
             // Select the most recent backup by default
             BackupDropdown.SelectedIndex = 0;
-            SelectedBackupPath = backups[0]; // Store the default selection
+            SelectedBackupPath = backups[0];
         }
 
         private void BackupDropdown_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
