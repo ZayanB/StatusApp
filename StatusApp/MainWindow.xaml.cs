@@ -97,7 +97,6 @@ namespace StatusApp
                     Content = $"Name: {destination.name}\nPath: {destination.path}",
                     FontSize = 15,
                     HorizontalAlignment = HorizontalAlignment.Left,
-
                 };
                 DestinationLabelsPanel.Children.Add(label);
             }
@@ -302,6 +301,10 @@ namespace StatusApp
 
             int lastUnderScioreIndex = backupPath.LastIndexOf("Backup_") + 7;
             string timestamp = backupPath.Substring(lastUnderScioreIndex);
+            string[] timestampNew = timestamp.Split('_');
+            string formattedTime = timestampNew[1].Replace("-", ":");
+            timestamp = $"{timestampNew[0]}_{formattedTime}";
+
 
             List<string> logEntries = new List<string>
             {
@@ -328,7 +331,6 @@ namespace StatusApp
 
                     foreach (var commonFile in commonFiles)
                     {
-                        //Console.WriteLine(commonFile);
                         logEntries.Add(commonFile);
                     }
 
@@ -497,7 +499,11 @@ namespace StatusApp
 
             CreateRollbackLog(timestamp);
 
-            MessageBox.Show($" Rolled backup {timestamp} back to destination", "Rollback Success", MessageBoxButton.OK);
+            string[] timeStampArr = timestamp.Split('_');
+            string formattedTime = timeStampArr[1].Replace("-", ":");
+            string formattedTimeStamp = $"{timeStampArr[0]}_{formattedTime}";
+
+            MessageBox.Show($" Rolled backup {formattedTimeStamp} back to destination", "Rollback Success", MessageBoxButton.OK);
 
         }
 
@@ -505,7 +511,11 @@ namespace StatusApp
         private void CreateRollbackLog(string timestamp)
         {
             string logPath = Path.Combine(ConfigData.backupFolder, "Rollback Log.txt");
-            string rollbackTime = DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss");
+            string rollbackTime = DateTime.Now.ToString("yyyy-MM-dd_HH:mm:ss");
+
+            string[] timestampNew = timestamp.Split('_');
+            string formattedTime = timestampNew[1].Replace("-", ":");
+            timestamp = $"{timestampNew[0]}_{formattedTime}";
 
             List<string> logs = new List<string>
             {
@@ -527,11 +537,20 @@ namespace StatusApp
         private void rollbackBtn_Click(object sender, RoutedEventArgs e)
         {
             string backUpFolder = SelectedBackupPath;
+            string formattedTimesStamp = string.Empty;
 
             int lastUnderScioreIndex = backUpFolder.LastIndexOf("Backup_") + 7;
             string timestamp = backUpFolder.Substring(lastUnderScioreIndex);
+            string[] timestampMsg = timestamp.Split('_');
 
-            MessageBoxResult result = MessageBox.Show($"Are you sure you want to rollback backup {timestamp} back to destination?", "Confirmation", MessageBoxButton.YesNo, MessageBoxImage.Question);
+            if (timestampMsg.Length == 2)
+            {
+                string formattedTime = timestampMsg[1].Replace('-', ':');
+                formattedTimesStamp = $"{timestampMsg[0]}_{formattedTime}";
+            }
+
+
+            MessageBoxResult result = MessageBox.Show($"Are you sure you want to rollback backup {formattedTimesStamp} back to destination?", "Confirmation", MessageBoxButton.YesNo, MessageBoxImage.Question);
             if (result == MessageBoxResult.Yes)
             {
                 Rollback(backUpFolder);
@@ -552,7 +571,6 @@ namespace StatusApp
                 return;
             }
 
-
             BackupDropdown.ItemsSource = backups.Select(path => Path.GetFileName(path)).ToList();
             // Select the most recent backup by default
             BackupDropdown.SelectedIndex = 0;
@@ -566,7 +584,6 @@ namespace StatusApp
             {
                 string selectedFolderName = BackupDropdown.SelectedItem.ToString();
                 SelectedBackupPath = Path.Combine(ConfigData.backupFolder, selectedFolderName);
-                //Console.WriteLine(SelectedBackupPath);
             }
         }
 
@@ -606,7 +623,7 @@ namespace StatusApp
 
                 if (result == MessageBoxResult.Yes)
                 {
-                    MessageBoxResult result2 = MessageBox.Show("This will keep the most recent 10 backups. Are you sure you want to proceed?", "Confirmation", MessageBoxButton.YesNo, MessageBoxImage.Question);
+                    MessageBoxResult result2 = MessageBox.Show($"This will keep the most recent {cleanupValue} backups. Are you sure you want to proceed?", "Confirmation", MessageBoxButton.YesNo, MessageBoxImage.Question);
                     if (result2 == MessageBoxResult.Yes)
                     {
                         backups = backups.Skip(cleanupValue).ToList();

@@ -72,9 +72,9 @@
                 <ColumnDefinition/>
             </Grid.ColumnDefinitions>
 
-            <Button  Content="Start" FontSize="15" Name="runBtn"   Click="runBtn_Click" Margin="22,16,22,16" />
+            <Button  Content="Start" FontSize="15" Name="runBtn"   Click="runBtn_Click" Width="300" Height="50" />
 
-            <Button Grid.Column="1" Content="Rollback" x:Name="showRollbackBtn" Click="showRollbackBtn_Click" Margin="22,16,22,16"/>
+            <Button Grid.Column="1" Content="Rollback" x:Name="showRollbackBtn" Click="showRollbackBtn_Click" Width="300" Height="50"/>
 
             <Popup x:Name="rollbackPopup" Placement="Center" VerticalOffset="-200" StaysOpen="False"  AllowsTransparency="True">
                 <Grid Background="#00a99d" Width="280" Height="200">
