@@ -3,10 +3,6 @@ using System.Text.Json;
 using System.Windows;
 using System.Windows.Controls;
 
-
-
-
-
 namespace StatusApp
 {
     /// <summary>
@@ -19,20 +15,19 @@ namespace StatusApp
         private int backupFileCount = 0;
         private int replacedFolderCount = 0;
         private int replacedFileCount = 0;
+        private static readonly string configPath = "C:\\Users\\Zayan Breiche\\Projects\\StatusApp\\StatusApp\\config.json";
 
         public Config ConfigData { get; set; }
         public MainWindow()
         {
             InitializeComponent();
 
-            string configPath = "C:\\Users\\Zayan Breiche\\Projects\\StatusApp\\StatusApp\\config.json";
-
             string jsonString = File.ReadAllText(configPath);
 
             ConfigData = JsonSerializer.Deserialize<Config>(jsonString);
 
             DataContext = this;
-
+            string backupFolderPath = ConfigData.backupFolder;
             AddDestinationLabels();
 
             InitializeBackupFolderWatcher();
@@ -40,10 +35,6 @@ namespace StatusApp
             LoadBackupOptions();
             this.Loaded += MainWindow_Loaded;
 
-        }
-        private void MainWindow_Loaded(object sender, RoutedEventArgs e)
-        {
-            CleanupBackups();
         }
 
         //run button method
@@ -56,9 +47,9 @@ namespace StatusApp
 
                 BackupDestination(backupPath);
 
-                CreateLogFile(backupPath);
+                //CreateLogFile(backupPath);
 
-                CopySourceToDestinations();
+                //CopySourceToDestinations();
 
                 //CreateBackupSource(backupPath);
 
@@ -75,19 +66,7 @@ namespace StatusApp
 
         }
 
-        private void AddDestinationLabels()
-        {
-            foreach (var destination in ConfigData.destinationFolders)
-            {
-                var label = new Label
-                {
-                    Content = $"Name: {destination.name}\nPath: {destination.path}",
-                    FontSize = 15,
-                    HorizontalAlignment = HorizontalAlignment.Left,
-                };
-                DestinationLabelsPanel.Children.Add(label);
-            }
-        }
+
 
         //method to create backup folder with timestamp
         private string CreateBackupFolderPath()
@@ -101,7 +80,8 @@ namespace StatusApp
             }
 
             string newBackupFolder = Path.Combine(backupFolder, $"Backup_{timestamp}");
-
+            //Console.WriteLine(newBackupFolder);
+            Directory.CreateDirectory(newBackupFolder);
             return newBackupFolder;
         }
 
@@ -139,7 +119,8 @@ namespace StatusApp
                 throw new DirectoryNotFoundException($"BackUp folder does not exist: {backupFolder}");
             }
 
-            string destinationBackupFolder = Path.Combine(backupFolder, backupPath, "Destination");
+            string destinationBackupFolder = Path.Combine(backupPath, "Destination");
+            //Console.WriteLine(destinationBackupFolder);
 
             foreach (var destination in ConfigData.destinationFolders)
             {
@@ -165,101 +146,154 @@ namespace StatusApp
                     {
                         Directory.CreateDirectory(destinationBackupFolder);
                     }
-                    string destinationSpecificBackupFolder = Path.Combine(destinationBackupFolder, destination.name);
-                    if (!Directory.Exists(destinationSpecificBackupFolder))
+                    string specificBackupFolder = Path.Combine(destinationBackupFolder, destination.name);
+                    if (!Directory.Exists(specificBackupFolder))
                     {
-                        Directory.CreateDirectory(destinationSpecificBackupFolder);
+                        Directory.CreateDirectory(specificBackupFolder);
                     }
-                    bool noRollback = false;
-
-                    BackupCommonItems(destinationPath, destinationSpecificBackupFolder, commonFiles, noRollback);
-                }
-                else
-                {
-                    Dispatcher.Invoke(() =>
-                    {
-                        txtReplacedCount.Content = $" No similar files to be replaced ";
-                    });
+                    ReplaceItems(destinationPath, specificBackupFolder, commonFiles, false);
                 }
             }
         }
 
-        private void BackupCommonItems(string sourceDir, string destinationDir, List<string> commonItems, bool rollback)
+        private void ReplaceItems(string sourceDir, string destDir, List<string> commonFiles, bool rollback)
         {
 
-            if (!Directory.Exists(destinationDir) && !rollback)
+            if (rollback)
             {
-                Directory.CreateDirectory(destinationDir);
-                backupFolderCount++;
-            }
-
-            // Copy common folders and files
-            foreach (string itemName in commonItems)
-            {
-                string sourceItemPath = Path.Combine(sourceDir, itemName);
-                string destItemPath = Path.Combine(destinationDir, itemName);
-
-                if (Directory.Exists(sourceItemPath)) // If it's a folder
+                //Console.WriteLine(sourceDir);
+                string logPath = Path.Combine(ConfigData.backupFolder, "Rollback Log.txt");
+                if (!File.Exists(logPath))
                 {
-                    // Copy the folder (even if empty)
-                    if (!Directory.Exists(destItemPath))
-                    {
-                        Directory.CreateDirectory(destItemPath);
-                        if (!rollback)
-                        {
-                            backupFolderCount++;
-                            replacedFolderCount++;
-                        }
-                    }
-
-                    // Recursion
-                    BackupCommonItems(sourceItemPath, destItemPath, commonItems, rollback);
+                    File.WriteAllText(logPath, "Rollback Log \n ----------------------------------------------------------------------------------\n");
                 }
-                else if (File.Exists(sourceItemPath))
+                foreach (var item in commonFiles)
                 {
-                    // Ensure the parent directory exists
-                    string parentDir = Path.GetDirectoryName(destItemPath);
-                    if (!Directory.Exists(parentDir))
+                    if (Path.HasExtension(item))
                     {
-                        Directory.CreateDirectory(parentDir);
-                        if (!rollback)
+                        string sourceItemPath = Path.Combine(sourceDir, item);
+                        string destItemPath = Path.Combine(destDir, item);
+                        File.Copy(sourceItemPath, destItemPath, overwrite: true);
+                        string logEntry = $"Copied {item} from {sourceDir} to {destDir} \n";
+                        File.AppendAllText(logPath, logEntry);
+                    }
+                }
+
+                File.AppendAllText(logPath, " ----------------------------------------------------------------------------------\n");
+            }
+            else
+            {
+                foreach (var item in commonFiles)
+                {
+                    string sourcePath = Path.Combine(sourceDir, item);
+
+                    string destPath = Path.Combine(destDir, item);
+
+                    if (Directory.Exists(sourcePath))
+                    {
+                        if (!Directory.Exists(destPath))
                         {
+                            Directory.CreateDirectory(destPath);
                             backupFolderCount++;
                             replacedFolderCount++;
                         }
                     }
-
-                    // Copy the file to the backup folder
-                    File.Copy(sourceItemPath, destItemPath, overwrite: true);
-                    if (!rollback)
+                    else if (File.Exists(sourcePath))
                     {
-                        backupFileCount++;
+                        string parentDir = Path.GetDirectoryName(destPath);
+                        if (!Directory.Exists(parentDir))
+                        {
+                            Directory.CreateDirectory(parentDir);
+                            backupFolderCount++;
+                            replacedFolderCount++;
+                        }
+                        File.Copy(sourcePath, destPath, overwrite: true);
                         replacedFileCount++;
+                        backupFileCount++;
                     }
-
                 }
-
-                // Update the UI with the counts
-                if (!rollback)
-                {
-                    Dispatcher.Invoke(() =>
-                    {
-                        txtBackupCount.Content = $" Backed Up {backupFolderCount} Folders & {backupFileCount} Files ";
-                    });
-                }
-
-            }
-
-            if (!rollback)
-            {
-                Dispatcher.Invoke(() =>
-                {
-                    txtReplacedCount.Content = $" Replaced {replacedFolderCount} Folders & {replacedFileCount} Files";
-                });
             }
 
 
         }
+
+        //private void BackupCommonItems(string sourceDir, string destinationDir, List<string> commonItems, bool rollback)
+        //{
+
+        //    if (!Directory.Exists(destinationDir) && !rollback)
+        //    {
+        //        Directory.CreateDirectory(destinationDir);
+        //        backupFolderCount++;
+        //    }
+
+        //    // Copy common folders and files
+        //    foreach (string itemName in commonItems)
+        //    {
+        //        string sourceItemPath = Path.Combine(sourceDir, itemName);
+        //        string destItemPath = Path.Combine(destinationDir, itemName);
+
+        //        if (Directory.Exists(sourceItemPath)) // If it's a folder
+        //        {
+        //            // Copy the folder (even if empty)
+        //            if (!Directory.Exists(destItemPath))
+        //            {
+        //                Directory.CreateDirectory(destItemPath);
+        //                if (!rollback)
+        //                {
+        //                    backupFolderCount++;
+        //                    replacedFolderCount++;
+        //                }
+        //            }
+
+        //            // Recursion
+        //            BackupCommonItems(sourceItemPath, destItemPath, commonItems, rollback);
+        //        }
+        //        else if (File.Exists(sourceItemPath))
+        //        {
+        //            // Ensure the parent directory exists
+        //            string parentDir = Path.GetDirectoryName(destItemPath);
+        //            if (!Directory.Exists(parentDir))
+        //            {
+        //                Directory.CreateDirectory(parentDir);
+        //                if (!rollback)
+        //                {
+        //                    backupFolderCount++;
+        //                    replacedFolderCount++;
+        //                }
+        //            }
+
+        //            // Copy the file to the backup folder
+        //            File.Copy(sourceItemPath, destItemPath, overwrite: true);
+        //            if (!rollback)
+        //            {
+        //                backupFileCount++;
+        //                replacedFileCount++;
+        //            }
+
+        //        }
+
+        //        // Update the UI with the counts
+        //        if (!rollback)
+        //        {
+        //            txtBackupCount.Content = $" Backed Up {backupFolderCount} Folders & {backupFileCount} Files ";
+        //            //Dispatcher.Invoke(() =>
+        //            //{
+        //            //    txtBackupCount.Content = $" Backed Up {backupFolderCount} Folders & {backupFileCount} Files ";
+        //            //});
+        //        }
+
+        //    }
+
+        //    if (!rollback)
+        //    {
+        //        Dispatcher.Invoke(() =>
+        //        {
+        //            txtReplacedCount.Content = $" Replaced {replacedFolderCount} Folders & {replacedFileCount} Files";
+        //        });
+        //    }
+
+
+        //}
 
         //method for creating log file
         private void CreateLogFile(string backupPath)
@@ -446,31 +480,22 @@ namespace StatusApp
         private void Rollback(string backupFolder)
         {
             string backupPath = Path.Combine(backupFolder, "Destination");
-            bool rollback = true;
-            Console.WriteLine("IN ROLL BACK METHOD:");
 
-            var backupFolderDirectories = Directory.GetDirectories(backupPath);
+            //var backupFolderDirectories = Directory.GetDirectories(backupPath);
 
-            foreach (string dir in backupFolderDirectories)
+            foreach (var destination in ConfigData.destinationFolders)
             {
-                foreach (var destination in ConfigData.destinationFolders)
-                {
-                    string destinationPath = destination.path;
-                    var commonFiles = CompareDirectoryPath(Path.Combine(backupPath, dir), destinationPath);
-                    BackupCommonItems(Path.Combine(backupPath, destination.name), destinationPath, commonFiles, rollback);
-                }
-            }
+                string rollbackPath = Path.Combine(backupPath, destination.name);
+                string destPath = destination.path;
 
+                var commonItems = CompareDirectoryPath(rollbackPath, destPath);
+                ReplaceItems(rollbackPath, destPath, commonItems, true);
+            }
+            //Console.WriteLine(backupFolder);
             int lastUnderScioreIndex = backupFolder.LastIndexOf("Backup_") + 7;
             string timestamp = backupFolder.Substring(lastUnderScioreIndex);
 
-            CreateRollbackLog(timestamp);
-
-            string[] timeStampArr = timestamp.Split('_');
-            string formattedTime = timeStampArr[1].Replace("-", ":");
-            string formattedTimeStamp = $"{timeStampArr[0]}_{formattedTime}";
-
-            MessageBox.Show($" Rolled backup {formattedTimeStamp} back to destination", "Rollback Success", MessageBoxButton.OK);
+            MessageBox.Show($" Rolled backup {timestamp} back to destination", "Rollback Success", MessageBoxButton.OK);
         }
 
         //method for rollback log
@@ -614,6 +639,26 @@ namespace StatusApp
         {
             rollbackPopup.IsOpen = true;
         }
+
+        private void MainWindow_Loaded(object sender, RoutedEventArgs e)
+        {
+            CleanupBackups();
+        }
+
+        private void AddDestinationLabels()
+        {
+            foreach (var destination in ConfigData.destinationFolders)
+            {
+                var label = new Label
+                {
+                    Content = $"Name: {destination.name}\nPath: {destination.path}",
+                    FontSize = 15,
+                    HorizontalAlignment = HorizontalAlignment.Left,
+                };
+                DestinationLabelsPanel.Children.Add(label);
+            }
+        }
+
 
     }
 }
