@@ -1,0 +1,20 @@
+{
+  "sourceFolder": "C:\\Users\\Zayan\\Desktop\\SafeCopy\\Source",
+  "destinationFolders": [
+    {
+      "name": "ServerX",
+      "path": "C:\\Users\\Zayan\\Desktop\\SafeCopy\\Destination\\ServerX"
+    },
+    {
+      "name": "ServerY",
+      "path": "C:\\Users\\Zayan\\Desktop\\SafeCopy\\Destination\\ServerY"
+    },
+    {
+      "name": "ServerZ",
+      "path": "C:\\Users\\Zayan\\Desktop\\SafeCopy\\Destination\\ServerZ"
+    }
+
+  ],
+  "backupFolder": "C:\\Users\\Zayan\\Desktop\\SafeCopy\\Backup",
+  "cleanupValue": 10
+}

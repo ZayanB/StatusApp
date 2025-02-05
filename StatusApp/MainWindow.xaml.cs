@@ -19,7 +19,8 @@ namespace StatusApp
         private int createdFileCount = 0;
         private int createdFolderCount = 0;
 
-        private static readonly string configPath = "C:\\Users\\Zayan Breiche\\Projects\\StatusApp\\StatusApp\\config.json";
+        //private static readonly string configPath = "C:\\Users\\Zayan Breiche\\Projects\\StatusApp\\StatusApp\\config.json";
+        private static readonly string configPath = "C:\\Users\\Zayan\\Source\\Repos\\StatusApp\\StatusApp\\ConfigZ.json";
 
         public Config ConfigData { get; set; }
         public MainWindow()
@@ -46,16 +47,18 @@ namespace StatusApp
         {
             try
             {
+                if (!CheckFolders())
+                {
+                    return;
+                }
 
-                string backupPath = CreateBackupFolderPath();
+                DateTime timestamp = CreateBackupInstance();
 
-                BackupDestination(backupPath);
-
-                //CreateLogFile(backupPath);
+                BackupDestination(timestamp);
 
                 CopySourceToDestinations();
 
-                //CreateBackupSource(backupPath);
+                CreateBackupSource(timestamp);
 
                 backupFolderCount = 0;
                 backupFileCount = 0;
@@ -73,10 +76,8 @@ namespace StatusApp
         }
 
         //method to create backup folder with timestamp
-        private string CreateBackupFolderPath()
+        private DateTime CreateBackupInstance()
         {
-            var currentTime = DateTime.Now;
-            string timestamp = currentTime.ToString("yyyy-MM-dd_HH-mm-ss");
             string backupFolder = ConfigData.backupFolder;
 
             if (!Directory.Exists(backupFolder))
@@ -84,10 +85,49 @@ namespace StatusApp
                 throw new DirectoryNotFoundException($"Backup Folder does not exist: {backupFolder}");
             }
 
-            string newBackupFolder = Path.Combine(backupFolder, $"Backup_{timestamp}");
-            //Console.WriteLine(newBackupFolder);
-            Directory.CreateDirectory(newBackupFolder);
-            return newBackupFolder;
+            DateTime currentTime = DateTime.Now;
+            string backupFolderSub = "Backup_" + currentTime.ToString("yyyy-MM-dd_HH-mm-ss");
+            string backupFolderPath = Path.Combine(backupFolder, backupFolderSub);
+
+            Directory.CreateDirectory(backupFolderPath);
+
+            return currentTime;
+        }
+
+        //method to check folders
+        private bool CheckFolders()
+        {
+            string sourceFolder = ConfigData.sourceFolder;
+            string backupFolder = ConfigData.backupFolder;
+
+            if (!Directory.EnumerateFileSystemEntries(sourceFolder).Any())
+            {
+                MessageBox.Show("Source Folder is Empty", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                return false;
+            }
+
+            if (!Directory.Exists(sourceFolder))
+            {
+                MessageBox.Show($"Source Folder is not existing at: {sourceFolder}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                return false;
+            }
+            if (!Directory.Exists(backupFolder))
+            {
+                MessageBox.Show($"Backup Folder is not existing at: {backupFolder}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                return false;
+            }
+
+            foreach (var destination in ConfigData.destinationFolders)
+            {
+                string destinationPath = destination.path;
+
+                if (!Directory.Exists(destinationPath))
+                {
+                    MessageBox.Show($"Destination Folder is not existing at: {destinationPath}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    return false;
+                }
+            }
+            return true;
         }
 
         //method to compare source and destination
@@ -99,45 +139,18 @@ namespace StatusApp
 
             List<string> commonItems = itemsInPath1.Intersect(itemsInPath2).ToList();
 
-            //if (itemsInPath1.Count == 0)
-            //{
-            //    throw new Exception($"Source Folder is Empty");
-            //}
-
             return commonItems;
         }
 
-        //methods to backup destination if same as source
-        private void BackupDestination(string backupPath)
+        //methods to backup destination if same as source & create backup log
+        private void BackupDestination(DateTime backupStamp)
         {
             string backupFolder = ConfigData.backupFolder;
             string sourceFolder = ConfigData.sourceFolder;
-
-            //Check for all path existence before proceeding
-            if (!Directory.Exists(sourceFolder))
-            {
-                throw new DirectoryNotFoundException($"Source folder does not exist: {sourceFolder}");
-            }
-
-            if (!Directory.Exists(backupFolder))
-            {
-                throw new DirectoryNotFoundException($"BackUp folder does not exist: {backupFolder}");
-            }
+            string backupPath = Path.Combine(backupFolder, "Backup_" + backupStamp.ToString("yyyy-MM-dd_HH-mm-ss"));
 
             string destinationBackupFolder = Path.Combine(backupPath, "Destination");
-            //Console.WriteLine(destinationBackupFolder);
-
-            foreach (var destination in ConfigData.destinationFolders)
-            {
-                string destinationPath = destination.path;
-
-                if (!Directory.Exists(destinationPath))
-                {
-                    throw new DirectoryNotFoundException($"Destination folder does not exist: {destinationPath}");
-                }
-
-            }
-
+            
             //Compare source with all destinations to check for common files 
             foreach (var destination in ConfigData.destinationFolders)
             {
@@ -156,7 +169,7 @@ namespace StatusApp
                     {
                         Directory.CreateDirectory(specificBackupFolder);
                     }
-                    ReplaceItems(destinationPath, specificBackupFolder, commonFiles, false, backupPath);
+                    ReplaceItems(destinationPath, specificBackupFolder, commonFiles, backupStamp);
                 }
                 else
                 {
@@ -164,155 +177,53 @@ namespace StatusApp
                     txtBackupCount.Content = $" Nothing backedup. all are different";
                     txtReplacedCount.Content = $" Nothing replaced.";
 
-
                 }
             }
         }
 
-        private void ReplaceItems(string sourceDir, string destDir, List<string> commonFiles, bool rollback, string backupPath = "")
+        private void ReplaceItems(string sourceDir, string destDir, List<string> commonFiles, DateTime backupStamp)
         {
 
-            if (rollback)
-            {
-                string logPath = Path.Combine(ConfigData.backupFolder, "Rollback Log.txt");
-                if (!File.Exists(logPath))
-                {
-                    File.WriteAllText(logPath, "Rollback Log \n ----------------------------------------------------------------------------------\n");
-                }
-                foreach (var item in commonFiles)
-                {
-                    if (Path.HasExtension(item))
-                    {
-                        string sourceItemPath = Path.Combine(sourceDir, item);
-                        string destItemPath = Path.Combine(destDir, item);
-                        File.Copy(sourceItemPath, destItemPath, overwrite: true);
-                        string logEntry = $"Copied {item} from {sourceDir} to {destDir} \n";
-                        File.AppendAllText(logPath, logEntry);
-                    }
-                }
+            string backupPath = Path.Combine(ConfigData.backupFolder, "Backup_" + backupStamp.ToString("yyyy-MM-dd_HH-mm-ss"));
+            string backupDateTime = "Backup: " + backupStamp.ToString("yyyy-MM-dd_HH:mm:ss");
 
-                File.AppendAllText(logPath, " ----------------------------------------------------------------------------------\n");
+            string backupLogFile = Path.Combine(backupPath, "Backup Log.txt");
+
+            if (!File.Exists(backupLogFile))
+            {
+                File.WriteAllText(backupLogFile, $"{backupDateTime} Log: \n -----------------------------------------------------------------------------------------------------\n");
             }
-            else
+            foreach (var item in commonFiles)
             {
-                string backupLogFile = Path.Combine(backupPath, "Backup Log.txt");
+                string sourcePath = Path.Combine(sourceDir, item);
 
-                string folderName = Path.GetFileName(backupPath);
-                int splitIndex = folderName.LastIndexOf('_') + 1;
-                string backupDateTime = folderName[..splitIndex] + folderName[splitIndex..].Replace('-', ':');
+                string destPath = Path.Combine(destDir, item);
 
-                if (!File.Exists(backupLogFile))
+                if (Directory.Exists(sourcePath))
                 {
-                    File.WriteAllText(backupLogFile, $"{backupDateTime} Log: \n -----------------------------------------------------------------------------------------------------\n");
-                }
-                foreach (var item in commonFiles)
-                {
-                    string sourcePath = Path.Combine(sourceDir, item);
-
-                    string destPath = Path.Combine(destDir, item);
-
-                    if (Directory.Exists(sourcePath))
+                    if (!Directory.Exists(destPath))
                     {
-                        if (!Directory.Exists(destPath))
-                        {
-                            Directory.CreateDirectory(destPath);
-                            string logEntry = $"Replaced Folder {item} from {sourceDir} to {destDir} \n";
-                            File.AppendAllText(backupLogFile, logEntry);
-                            backupFolderCount++;
-                            replacedFolderCount++;
-                        }
-                    }
-                    else if (File.Exists(sourcePath))
-                    {
-                        File.Copy(sourcePath, destPath, overwrite: true);
-                        replacedFileCount++;
-                        backupFileCount++;
-                        string logEntry = $"Replaced File {item} from {sourceDir} to {destDir} \n";
+                        Directory.CreateDirectory(destPath);
+                        string logEntry = $"Backed up Folder {item} from {sourceDir} to {destDir} \n";
                         File.AppendAllText(backupLogFile, logEntry);
+                        backupFolderCount++;
+                        replacedFolderCount++;
                     }
                 }
-
-                txtBackupCount.Content = $" Backed Up {backupFolderCount} Folders & {backupFileCount} Files ";
-                txtReplacedCount.Content = $" Replaced {replacedFolderCount} Folders & {replacedFileCount} Files";
-
-
+                else if (File.Exists(sourcePath))
+                {
+                    File.Copy(sourcePath, destPath, overwrite: true);
+                    replacedFileCount++;
+                    backupFileCount++;
+                    string logEntry = $"Backed up File {item} from {sourceDir} to {destDir} \n";
+                    File.AppendAllText(backupLogFile, logEntry);
+                }
             }
 
+            txtBackupCount.Content = $" Backed Up {backupFolderCount} Folders & {backupFileCount} Files ";
+            txtReplacedCount.Content = $" Replaced {replacedFolderCount} Folders & {replacedFileCount} Files";
 
         }
-
-        //private void CreateLogFile(string backupPath)
-        //{
-        //    string sourceFolder = ConfigData.sourceFolder;
-        //    string logBackupFile = Path.Combine(ConfigData.backupFolder, backupPath, "Backup Log.txt");
-
-        //    int lastUnderScioreIndex = backupPath.LastIndexOf("Backup_") + 7;
-        //    string timestamp = backupPath.Substring(lastUnderScioreIndex);
-        //    string[] timestampNew = timestamp.Split('_');
-        //    string formattedTime = timestampNew[1].Replace("-", ":");
-        //    timestamp = $"{timestampNew[0]}_{formattedTime}";
-
-        //    List<string> logEntries = new List<string>
-        //    {
-        //            $"BACKUP LOG {timestamp}",
-        //            "===================================",
-        //            ""
-        //    };
-
-        //    List<string> sourceFolderItems = Directory.EnumerateFileSystemEntries(sourceFolder, "*", SearchOption.AllDirectories).Select(path => Path.GetRelativePath(sourceFolder, path)).ToList();
-
-        //    foreach (var destination in ConfigData.destinationFolders)
-        //    {
-        //        string destinationPath = destination.path;
-        //        var commonFiles = CompareDirectoryPath(sourceFolder, destinationPath);
-
-        //        logEntries.Add($"From: {sourceFolder}");
-        //        logEntries.Add($"To: {destinationPath}");
-        //        logEntries.Add("-------------------------------------------------------");
-
-        //        if (commonFiles.Count > 0)
-        //        {
-        //            logEntries.Add("Replaced Files:");
-
-
-        //            foreach (var commonFile in commonFiles)
-        //            {
-        //                logEntries.Add(commonFile);
-        //            }
-
-        //            logEntries.Add("");
-        //        }
-        //        else
-        //        {
-        //            logEntries.Add("No common items to be replaced.");
-        //            logEntries.Add("");
-        //        }
-
-        //        var newFiles = sourceFolderItems.Except(commonFiles);
-
-        //        if (newFiles.Any())
-        //        {
-        //            logEntries.Add("Added Files:");
-        //            foreach (var newFile in newFiles)
-        //            {
-        //                logEntries.Add(newFile);
-        //            }
-        //            logEntries.Add("");
-        //        }
-        //        else
-        //        {
-        //            logEntries.Add("No new files added.");
-        //            logEntries.Add("");
-        //        }
-        //        logEntries.Add("-------------------------------------------------------");
-
-        //    }
-
-        //    Directory.CreateDirectory(Path.GetDirectoryName(logBackupFile));
-
-        //    File.WriteAllLines(logBackupFile, logEntries);
-
-        //}
 
         //methods to copy from source to destination
         private void CopySourceToDestinations()
@@ -367,13 +278,13 @@ namespace StatusApp
         }
 
         //methods to backup source (empty it)
-        private void CreateBackupSource(string backupPath)
+        private void CreateBackupSource(DateTime backupStamp)
         {
             string backupFolder = ConfigData.backupFolder;
             string sourceFolder = ConfigData.sourceFolder;
+            string backupPath = Path.Combine(backupFolder, "Backup_" + backupStamp.ToString("yyyy-MM-dd_HH-mm-ss"));
 
             string backupSubFolder = Path.Combine(backupFolder, backupPath, Path.GetFileName(sourceFolder));
-            Console.WriteLine(backupSubFolder);
 
             // Backup the source 
 
@@ -408,8 +319,7 @@ namespace StatusApp
         private void Rollback(string backupFolder)
         {
             string backupPath = Path.Combine(backupFolder, "Destination");
-
-            //var backupFolderDirectories = Directory.GetDirectories(backupPath);
+            string backupFolderName = Path.GetFileName(backupFolder);
 
             foreach (var destination in ConfigData.destinationFolders)
             {
@@ -417,57 +327,44 @@ namespace StatusApp
                 string destPath = destination.path;
 
                 var commonItems = CompareDirectoryPath(rollbackPath, destPath);
-                ReplaceItems(rollbackPath, destPath, commonItems, true);
-            }
-            //Console.WriteLine(backupFolder);
-            int lastUnderScioreIndex = backupFolder.LastIndexOf("Backup_") + 7;
-            string timestamp = backupFolder.Substring(lastUnderScioreIndex);
 
-            MessageBox.Show($" Rolled backup {timestamp} back to destination", "Rollback Success", MessageBoxButton.OK);
+                RollBackItems(rollbackPath, destPath, commonItems);
+            }
+
+            MessageBox.Show($" Rolled backup {backupFolderName} back to destination", "Rollback Success", MessageBoxButton.OK);
         }
 
-        //method for rollback log
-        private void CreateRollbackLog(string timestamp)
+        private void RollBackItems(string sourceDir, string destDir, List<string> commonFiles)
         {
             string logPath = Path.Combine(ConfigData.backupFolder, "Rollback Log.txt");
-            string rollbackTime = DateTime.Now.ToString("yyyy-MM-dd_HH:mm:ss");
-
-            string[] timestampNew = timestamp.Split('_');
-            string formattedTime = timestampNew[1].Replace("-", ":");
-            timestamp = $"{timestampNew[0]}_{formattedTime}";
-
-            List<string> logs = new List<string>
-            {
-                $"Rolled Backup {timestamp} back to destination on {rollbackTime}"
-            };
-
+            string rollbackDateTime = DateTime.Now.ToString("yyyy-MM-dd_HH:mm:ss");
             if (!File.Exists(logPath))
             {
-                File.WriteAllText(logPath, "Rollback Log\n");
-                File.AppendAllText(logPath, "-----------------------------------------------------------------------------\n");
+                File.WriteAllText(logPath, "Rollback Log: \n ----------------------------------------------------------------------------------\n");
             }
 
-            File.AppendAllLines(logPath, logs);
 
+            foreach (var item in commonFiles)
+            {
+                if (Path.HasExtension(item))
+                {
+                    string sourceItemPath = Path.Combine(sourceDir, item);
+                    string destItemPath = Path.Combine(destDir, item);
+                    File.Copy(sourceItemPath, destItemPath, overwrite: true);
+                    string logEntry = $"Copied {item} from {sourceDir} to {destDir} on {rollbackDateTime} \n";
+                    File.AppendAllText(logPath, logEntry);
+                }
+            }
+
+            File.AppendAllText(logPath, " ----------------------------------------------------------------------------------\n");
         }
 
         //roll back btn method
         private void rollbackBtn_Click(object sender, RoutedEventArgs e)
         {
             string backUpFolder = SelectedBackupPath;
-            string formattedTimesStamp = string.Empty;
 
-            int lastUnderScioreIndex = backUpFolder.LastIndexOf("Backup_") + 7;
-            string timestamp = backUpFolder.Substring(lastUnderScioreIndex);
-            string[] timestampMsg = timestamp.Split('_');
-
-            if (timestampMsg.Length == 2)
-            {
-                string formattedTime = timestampMsg[1].Replace('-', ':');
-                formattedTimesStamp = $"{timestampMsg[0]}_{formattedTime}";
-            }
-
-            MessageBoxResult result = MessageBox.Show($"Are you sure you want to rollback backup {formattedTimesStamp} back to destination?", "Confirmation", MessageBoxButton.YesNo, MessageBoxImage.Question);
+            MessageBoxResult result = MessageBox.Show($"Are you sure you want to rollback backup {Path.GetFileName(backUpFolder)} back to destination?", "Confirmation", MessageBoxButton.YesNo, MessageBoxImage.Question);
             if (result == MessageBoxResult.Yes)
             {
                 Rollback(backUpFolder);
