@@ -19,7 +19,8 @@ namespace StatusApp
         public string sourceFolder { get; set; }
         public List<Destination> destinationFolders { get; set; }
         public string backupFolder { get; set; }
-        public int cleanupValue { get; set; } 
+   
+        public int keepBackupsCount { get; set; }
 
     }
 }

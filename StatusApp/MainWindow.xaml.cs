@@ -19,30 +19,47 @@ namespace StatusApp
         private int CreatedFileCount = 0;
         private int CreatedFolderCount = 0;
 
-        private FileSystemWatcher _backupFolderWatcher;
+        private static readonly string BackupFolderName = "Backup";
+        private static readonly string DestinationFolderName = "Destination";
 
-        private static readonly string ConfigPath = "C:\\Users\\Zayan Breiche\\Projects\\StatusApp\\StatusApp\\config.json";
+        private static readonly string AppDirectory = AppDomain.CurrentDomain.BaseDirectory;
+        private static readonly string ConfigFilePath = Path.Combine(AppDirectory, "config.json");
+
+        //private static readonly string ConfigPath = "C:\\Users\\Zayan Breiche\\Projects\\StatusApp\\StatusApp\\config.json";
         //private static readonly string configPath = "C:\\Users\\Zayan\\Source\\Repos\\StatusApp\\StatusApp\\ConfigZ.json";
 
         public Config ConfigData { get; set; }
 
         public MainWindow()
         {
-            InitializeComponent();
 
-            string jsonString = File.ReadAllText(ConfigPath);
+            //string jsonString = File.ReadAllText(ConfigPath);
 
-            ConfigData = JsonSerializer.Deserialize<Config>(jsonString);
+            if (File.Exists(ConfigFilePath))
+            {
+                InitializeComponent();
 
-            DataContext = this;
-       
-            AddDestinationLabels();
+                string jsonString = File.ReadAllText(ConfigFilePath);
 
-            //InitializeBackupFolderWatcher();
+                ConfigData = JsonSerializer.Deserialize<Config>(jsonString);
 
-            LoadBackupOptions();
+                DataContext = this;
 
-            this.Loaded += MainWindow_Loaded;
+                AddDestinationLabels();
+
+                //InitializeBackupFolderWatcher();
+
+                LoadBackupOptions();
+
+                this.Loaded += MainWindow_Loaded;
+            }
+            else
+            {
+                MessageBox.Show($"Config file not found at {ConfigFilePath}.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                Application.Current.Shutdown();
+            }
+
+
         }
 
         //run button method
@@ -140,14 +157,20 @@ namespace StatusApp
             return commonItems;
         }
 
+        //method to get backup folder name
+        private string GetBackupName(DateTime backupStamp)
+        {
+            string backupPath = Path.Combine(ConfigData.backupFolder, BackupFolderName + backupStamp.ToString("_yyyy-MM-dd_HH-mm-ss"));
+            return backupPath;
+        }
+
         //methods to backup destination if same as source & create backup log
         private void BackupDestination(DateTime backupStamp)
         {
-            string backupFolder = ConfigData.backupFolder;
             string sourceFolder = ConfigData.sourceFolder;
-            string backupPath = Path.Combine(backupFolder, "Backup_" + backupStamp.ToString("yyyy-MM-dd_HH-mm-ss"));
+            string backupPath = GetBackupName(backupStamp);
 
-            string destinationBackupFolder = Path.Combine(backupPath, "Destination");
+            string destinationBackupFolder = Path.Combine(backupPath, DestinationFolderName);
 
             //Compare source with all destinations to check for common files 
             foreach (var destination in ConfigData.destinationFolders)
@@ -180,7 +203,7 @@ namespace StatusApp
         private void BackupItems(string sourceDir, string destDir, List<string> commonFiles, DateTime backupStamp)
         {
 
-            string backupPath = Path.Combine(ConfigData.backupFolder, "Backup_" + backupStamp.ToString("yyyy-MM-dd_HH-mm-ss"));
+            string backupPath = GetBackupName(backupStamp);
             string backupDateTime = "Backup: " + backupStamp.ToString("yyyy-MM-dd_HH:mm:ss");
 
             string backupLogFile = Path.Combine(backupPath, "Backup Log.txt");
@@ -201,7 +224,7 @@ namespace StatusApp
                     {
                         Directory.CreateDirectory(destPath);
                         string logEntry = $"Backed up Folder {item} from {sourceDir} to {destDir} \n";
-                        File.AppendAllText(backupLogFile, logEntry);
+                        CreateLog(backupLogFile, logEntry);
                         BackupFolderCount++;
                         ReplacedFolderCount++;
                     }
@@ -210,7 +233,7 @@ namespace StatusApp
                 {
                     File.Copy(sourcePath, destPath, overwrite: true);
                     string logEntry = $"Backed up File {item} from {sourceDir} to {destDir} \n";
-                    File.AppendAllText(backupLogFile, logEntry);
+                    CreateLog(backupLogFile, logEntry);
                     ReplacedFileCount++;
                     BackupFileCount++;
                 }
@@ -219,6 +242,11 @@ namespace StatusApp
             txtBackupCount.Content = $" Backed Up {BackupFolderCount} Folders & {BackupFileCount} Files ";
             txtReplacedCount.Content = $" Replaced {ReplacedFolderCount} Folders & {ReplacedFileCount} Files";
 
+        }
+
+        private void CreateLog(string logFilePath, string logEntry)
+        {
+            File.AppendAllText(logFilePath, logEntry);
         }
 
         //methods to copy from source to destination
@@ -248,7 +276,7 @@ namespace StatusApp
                 string fileName = Path.GetFileName(file);
                 string destFile = Path.Combine(destinationDir, fileName);
                 if (!File.Exists(destFile)) { CreatedFileCount++; }
-                File.Copy(file, destFile, overwrite: true);
+                File.Copy(file, destFile, true);
 
             }
 
@@ -279,7 +307,8 @@ namespace StatusApp
         {
             string backupFolder = ConfigData.backupFolder;
             string sourceFolder = ConfigData.sourceFolder;
-            string backupPath = Path.Combine(backupFolder, "Backup_" + backupStamp.ToString("yyyy-MM-dd_HH-mm-ss"));
+            string backupPath = GetBackupName(backupStamp);
+
 
             string backupSubFolder = Path.Combine(backupFolder, backupPath, Path.GetFileName(sourceFolder));
 
@@ -314,7 +343,7 @@ namespace StatusApp
         //method for rollback 
         private void Rollback(string backupFolder)
         {
-            string backupPath = Path.Combine(backupFolder, "Destination");
+            string backupPath = Path.Combine(backupFolder, DestinationFolderName);
             string backupFolderName = Path.GetFileName(backupFolder);
 
             foreach (var destination in ConfigData.destinationFolders)
@@ -327,7 +356,7 @@ namespace StatusApp
                 RollBackItems(rollbackPath, destPath, commonItems);
             }
 
-            MessageBox.Show($" Rolled backup {backupFolderName} back to destination", "Rollback Success", MessageBoxButton.OK);
+            MessageBox.Show($" Rolled backup {backupFolderName} back to {DestinationFolderName}", "Rollback Success", MessageBoxButton.OK);
         }
 
         private void RollBackItems(string sourceDir, string destDir, List<string> commonFiles)
@@ -347,7 +376,7 @@ namespace StatusApp
                     string destItemPath = Path.Combine(destDir, item);
                     File.Copy(sourceItemPath, destItemPath, overwrite: true);
                     string logEntry = $"Copied {item} from {sourceDir} to {destDir} on {rollbackDateTime} \n";
-                    File.AppendAllText(logPath, logEntry);
+                    CreateLog(logPath, logEntry);
                 }
             }
 
@@ -359,7 +388,7 @@ namespace StatusApp
         {
             string backUpFolder = SelectedBackupPath;
 
-            MessageBoxResult result = MessageBox.Show($"Are you sure you want to rollback backup {Path.GetFileName(backUpFolder)} back to destination?", "Confirmation", MessageBoxButton.YesNo, MessageBoxImage.Question);
+            MessageBoxResult result = MessageBox.Show($"Are you sure you want to rollback backup {Path.GetFileName(backUpFolder)} back to {DestinationFolderName}?", "Confirmation", MessageBoxButton.YesNo, MessageBoxImage.Question);
             if (result == MessageBoxResult.Yes)
             {
                 Rollback(backUpFolder);
@@ -396,67 +425,42 @@ namespace StatusApp
             }
         }
 
-        private void InitializeBackupFolderWatcher()
+        private void showRollbackBtn_Click(object sender, RoutedEventArgs e)
         {
-            _backupFolderWatcher = new FileSystemWatcher
-            {
-                Path = ConfigData.backupFolder,
-                NotifyFilter = NotifyFilters.DirectoryName, // Watch for directory changes, create,delet,or rename
-                EnableRaisingEvents = true
-            };
-
-            _backupFolderWatcher.Created += OnBackupFolderChanged;
-            _backupFolderWatcher.Deleted += OnBackupFolderChanged;
-            _backupFolderWatcher.Renamed += OnBackupFolderChanged;
-        }
-
-        private void OnBackupFolderChanged(object sender, FileSystemEventArgs e)
-        {
-            // Refresh the dropdown when a change is detected
-            Dispatcher.Invoke(LoadBackupOptions);
+            rollbackPopup.IsOpen = true;
+            LoadBackupOptions();
         }
 
         //Cleanup Method
         private void CleanupBackups()
         {
-            int cleanupValue = ConfigData.cleanupValue;
+
+            int keepBackupsCount = ConfigData.keepBackupsCount;
 
             var backups = Directory.GetDirectories(ConfigData.backupFolder).OrderByDescending(dir => Directory.GetCreationTime(dir)).ToList();
 
-            if (backups.Count > cleanupValue)
+            if (backups.Count > keepBackupsCount)
             {
 
                 MessageBoxResult result = MessageBox.Show("Do you want to cleanup backups?", "Confirmation", MessageBoxButton.YesNo, MessageBoxImage.Question);
 
                 if (result == MessageBoxResult.Yes)
                 {
-                    MessageBoxResult result2 = MessageBox.Show($"This will keep the most recent {cleanupValue} backups. Are you sure you want to proceed?", "Confirmation", MessageBoxButton.YesNo, MessageBoxImage.Question);
+                    MessageBoxResult result2 = MessageBox.Show($"This will keep the most recent {keepBackupsCount} backups. Are you sure you want to proceed?", "Confirmation", MessageBoxButton.YesNo, MessageBoxImage.Question);
                     if (result2 == MessageBoxResult.Yes)
                     {
-                        backups = backups.Skip(cleanupValue).ToList();
+                        backups = backups.Skip(keepBackupsCount).ToList();
                         foreach (var backup in backups)
                         {
                             Directory.Delete(backup, true);
                         }
                         MessageBox.Show($"Deleted {backups.Count} backups", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
                     }
-                    else
-                    {
-                        return;
-                    }
+
                 }
-                else
-                {
-                    return;
-                }
+
             }
 
-        }
-
-        private void showRollbackBtn_Click(object sender, RoutedEventArgs e)
-        {
-            rollbackPopup.IsOpen = true;
-            InitializeBackupFolderWatcher();
         }
 
         private void MainWindow_Loaded(object sender, RoutedEventArgs e)
