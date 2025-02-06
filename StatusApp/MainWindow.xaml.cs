@@ -11,7 +11,6 @@ namespace StatusApp
     /// </summary>
     public partial class MainWindow : Window
     {
-        //public string SelectedBackupPath { get; private set; } = string.Empty;
         private int BackupFolderCount = 0;
         private int BackupFileCount = 0;
         private int ReplacedFolderCount = 0;
@@ -21,6 +20,7 @@ namespace StatusApp
 
         private static readonly string BackupFolderName = "Backup";
         private static readonly string DestinationFolderName = "Destination";
+        private static readonly string SourceFolderName = "Source";
         private static readonly string RollbackFile = "Rollback Log.txt";
 
         private static readonly string AppDirectory = AppDomain.CurrentDomain.BaseDirectory;
@@ -31,7 +31,7 @@ namespace StatusApp
         public Config ConfigData { get; set; }
 
         public MainWindow()
-        {     
+        {
             try
             {
                 if (File.Exists(ConfigFilePath))
@@ -58,7 +58,6 @@ namespace StatusApp
             {
                 MessageBox.Show($"{ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
-
 
         }
 
@@ -94,7 +93,7 @@ namespace StatusApp
             }
 
         }
-
+       
         //method to check folders
         private bool CheckFolders()
         {
@@ -103,18 +102,18 @@ namespace StatusApp
 
             if (!Directory.EnumerateFileSystemEntries(sourceFolder).Any())
             {
-                MessageBox.Show("Source Folder is Empty", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show($"{SourceFolderName} is Empty", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 return false;
             }
 
             if (!Directory.Exists(sourceFolder))
             {
-                MessageBox.Show($"Source Folder is not existing at: {sourceFolder}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show($"{SourceFolderName} is not existing at: {sourceFolder}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 return false;
             }
             if (!Directory.Exists(backupFolder))
             {
-                MessageBox.Show($"Backup Folder is not existing at: {backupFolder}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show($"{BackupFolderName} is not existing at: {backupFolder}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 return false;
             }
 
@@ -124,13 +123,13 @@ namespace StatusApp
 
                 if (!Directory.Exists(destinationPath))
                 {
-                    MessageBox.Show($"Destination Folder is not existing at: {destinationPath}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    MessageBox.Show($"{DestinationFolderName} is not existing at: {destinationPath}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                     return false;
                 }
             }
             return true;
         }
-
+       
         //method to create backup folder with timestamp
         private DateTime CreateBackupInstance()
         {
@@ -144,7 +143,7 @@ namespace StatusApp
 
             return currentTime;
         }
-
+       
         //method to compare source and destination
         private List<string> CompareDirectoryPath(string path1, string path2)
         {
@@ -156,7 +155,7 @@ namespace StatusApp
 
             return commonItems;
         }
-
+       
         //method to get backup folder name
         private string GetBackupName(DateTime backupStamp)
         {
@@ -194,8 +193,8 @@ namespace StatusApp
                 }
                 else
                 {
-                    txtBackupCount.Content = $" Nothing backedup. All are different";
-                    txtReplacedCount.Content = $" Nothing replaced. No similar files";
+                    txtBackupCount.Content = $" No common files between {SourceFolderName} and {DestinationFolderName} to backup. Backed up only {SourceFolderName}";
+                    txtReplacedCount.Content = $"Nothing to replace between {SourceFolderName} and {DestinationFolderName}";
                 }
             }
         }
@@ -244,6 +243,7 @@ namespace StatusApp
 
         }
 
+        //method for appending lines to logs
         private void Log(string logFilePath, string logEntry)
         {
             File.AppendAllText(logFilePath, logEntry);
@@ -316,7 +316,7 @@ namespace StatusApp
             {
                 Directory.CreateDirectory(backupSubFolder);
             }
-            //BackupSource(sourceFolder, backupSubFolder);
+            BackupSource(sourceFolder, backupSubFolder);
         }
 
         private void BackupSource(string sourceFolder, string destinationFolder)
@@ -410,6 +410,7 @@ namespace StatusApp
             {
                 BackupDropdown.ItemsSource = new List<string> { "No backups found" };
                 BackupDropdown.SelectedIndex = 0;
+                rollbackBtn.IsEnabled = false;
                 return;
             }
 
