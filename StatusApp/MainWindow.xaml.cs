@@ -210,7 +210,7 @@ namespace StatusApp
 
             if (!File.Exists(backupLogFile))
             {
-                File.WriteAllText(backupLogFile, $"{backupDateTime} Log: \n------------------------------------------------------------------------------------------------------------------------------------------------------------\n\n");
+                File.WriteAllText(backupLogFile, $"{backupDateTime} Log: \n------------------------------------------------------------------------------------------------------------------\n\n");
             }
             foreach (var item in commonFiles)
             {
@@ -350,9 +350,9 @@ namespace StatusApp
 
             if (!File.Exists(logPath))
             {
-                File.WriteAllText(logPath, "ROLLBACK LOG:\n\n------------------------------------------------------------------------------------------------------------------------------------------------------------\n");
+                File.WriteAllText(logPath, "ROLLBACK LOG:\n\n-----------------------------------------------------------------\n");
             }
-            Log(logPath, $"Rollback of {backupFolderName} on {rollbackDateTime}: \n------------------------------------------------------------------------------------------------------------------------------------------------------------\n\n");
+            Log(logPath, $"Rollback of {backupFolderName} on {rollbackDateTime}: \n-----------------------------------------------------------------\n\n");
 
             foreach (var destination in ConfigData.destinationFolders)
             {
@@ -363,7 +363,7 @@ namespace StatusApp
 
                 RollBackItems(rollbackPath, destPath, commonItems);
             }
-            Log(logPath, $"\n------------------------------------------------------------------------------------------------------------------------------------------------------------\n");
+            Log(logPath, $"\n-----------------------------------------------------------------\n");
             MessageBox.Show($" Rolled backup {backupFolderName} back to {DestinationFolderName}", "Rollback Success", MessageBoxButton.OK);
         }
 
