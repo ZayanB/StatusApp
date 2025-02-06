@@ -12,34 +12,37 @@ namespace StatusApp
     public partial class MainWindow : Window
     {
         public string SelectedBackupPath { get; private set; } = string.Empty;
-        private int backupFolderCount = 0;
-        private int backupFileCount = 0;
-        private int replacedFolderCount = 0;
-        private int replacedFileCount = 0;
-        private int createdFileCount = 0;
-        private int createdFolderCount = 0;
+        private int BackupFolderCount = 0;
+        private int BackupFileCount = 0;
+        private int ReplacedFolderCount = 0;
+        private int ReplacedFileCount = 0;
+        private int CreatedFileCount = 0;
+        private int CreatedFolderCount = 0;
 
-        //private static readonly string configPath = "C:\\Users\\Zayan Breiche\\Projects\\StatusApp\\StatusApp\\config.json";
-        private static readonly string configPath = "C:\\Users\\Zayan\\Source\\Repos\\StatusApp\\StatusApp\\ConfigZ.json";
+        private FileSystemWatcher _backupFolderWatcher;
+
+        private static readonly string ConfigPath = "C:\\Users\\Zayan Breiche\\Projects\\StatusApp\\StatusApp\\config.json";
+        //private static readonly string configPath = "C:\\Users\\Zayan\\Source\\Repos\\StatusApp\\StatusApp\\ConfigZ.json";
 
         public Config ConfigData { get; set; }
+
         public MainWindow()
         {
             InitializeComponent();
 
-            string jsonString = File.ReadAllText(configPath);
+            string jsonString = File.ReadAllText(ConfigPath);
 
             ConfigData = JsonSerializer.Deserialize<Config>(jsonString);
 
             DataContext = this;
-            string backupFolderPath = ConfigData.backupFolder;
+       
             AddDestinationLabels();
 
-            InitializeBackupFolderWatcher();
+            //InitializeBackupFolderWatcher();
 
             LoadBackupOptions();
-            this.Loaded += MainWindow_Loaded;
 
+            this.Loaded += MainWindow_Loaded;
         }
 
         //run button method
@@ -60,12 +63,12 @@ namespace StatusApp
 
                 CreateBackupSource(timestamp);
 
-                backupFolderCount = 0;
-                backupFileCount = 0;
-                replacedFolderCount = 0;
-                replacedFileCount = 0;
-                createdFolderCount = 0;
-                createdFileCount = 0;
+                BackupFolderCount = 0;
+                BackupFileCount = 0;
+                ReplacedFolderCount = 0;
+                ReplacedFileCount = 0;
+                CreatedFolderCount = 0;
+                CreatedFileCount = 0;
             }
             catch (Exception ex)
             {
@@ -73,25 +76,6 @@ namespace StatusApp
                 return;
             }
 
-        }
-
-        //method to create backup folder with timestamp
-        private DateTime CreateBackupInstance()
-        {
-            string backupFolder = ConfigData.backupFolder;
-
-            if (!Directory.Exists(backupFolder))
-            {
-                throw new DirectoryNotFoundException($"Backup Folder does not exist: {backupFolder}");
-            }
-
-            DateTime currentTime = DateTime.Now;
-            string backupFolderSub = "Backup_" + currentTime.ToString("yyyy-MM-dd_HH-mm-ss");
-            string backupFolderPath = Path.Combine(backupFolder, backupFolderSub);
-
-            Directory.CreateDirectory(backupFolderPath);
-
-            return currentTime;
         }
 
         //method to check folders
@@ -130,6 +114,20 @@ namespace StatusApp
             return true;
         }
 
+        //method to create backup folder with timestamp
+        private DateTime CreateBackupInstance()
+        {
+            string backupFolder = ConfigData.backupFolder;
+
+            DateTime currentTime = DateTime.Now;
+            string backupFolderSub = "Backup_" + currentTime.ToString("yyyy-MM-dd_HH-mm-ss");
+            string backupFolderPath = Path.Combine(backupFolder, backupFolderSub);
+
+            Directory.CreateDirectory(backupFolderPath);
+
+            return currentTime;
+        }
+
         //method to compare source and destination
         private List<string> CompareDirectoryPath(string path1, string path2)
         {
@@ -150,7 +148,7 @@ namespace StatusApp
             string backupPath = Path.Combine(backupFolder, "Backup_" + backupStamp.ToString("yyyy-MM-dd_HH-mm-ss"));
 
             string destinationBackupFolder = Path.Combine(backupPath, "Destination");
-            
+
             //Compare source with all destinations to check for common files 
             foreach (var destination in ConfigData.destinationFolders)
             {
@@ -169,19 +167,17 @@ namespace StatusApp
                     {
                         Directory.CreateDirectory(specificBackupFolder);
                     }
-                    ReplaceItems(destinationPath, specificBackupFolder, commonFiles, backupStamp);
+                    BackupItems(destinationPath, specificBackupFolder, commonFiles, backupStamp);
                 }
                 else
                 {
-
-                    txtBackupCount.Content = $" Nothing backedup. all are different";
-                    txtReplacedCount.Content = $" Nothing replaced.";
-
+                    txtBackupCount.Content = $" Nothing backedup. All are different";
+                    txtReplacedCount.Content = $" Nothing replaced. No similar files";
                 }
             }
         }
 
-        private void ReplaceItems(string sourceDir, string destDir, List<string> commonFiles, DateTime backupStamp)
+        private void BackupItems(string sourceDir, string destDir, List<string> commonFiles, DateTime backupStamp)
         {
 
             string backupPath = Path.Combine(ConfigData.backupFolder, "Backup_" + backupStamp.ToString("yyyy-MM-dd_HH-mm-ss"));
@@ -206,22 +202,22 @@ namespace StatusApp
                         Directory.CreateDirectory(destPath);
                         string logEntry = $"Backed up Folder {item} from {sourceDir} to {destDir} \n";
                         File.AppendAllText(backupLogFile, logEntry);
-                        backupFolderCount++;
-                        replacedFolderCount++;
+                        BackupFolderCount++;
+                        ReplacedFolderCount++;
                     }
                 }
                 else if (File.Exists(sourcePath))
                 {
                     File.Copy(sourcePath, destPath, overwrite: true);
-                    replacedFileCount++;
-                    backupFileCount++;
                     string logEntry = $"Backed up File {item} from {sourceDir} to {destDir} \n";
                     File.AppendAllText(backupLogFile, logEntry);
+                    ReplacedFileCount++;
+                    BackupFileCount++;
                 }
             }
 
-            txtBackupCount.Content = $" Backed Up {backupFolderCount} Folders & {backupFileCount} Files ";
-            txtReplacedCount.Content = $" Replaced {replacedFolderCount} Folders & {replacedFileCount} Files";
+            txtBackupCount.Content = $" Backed Up {BackupFolderCount} Folders & {BackupFileCount} Files ";
+            txtReplacedCount.Content = $" Replaced {ReplacedFolderCount} Folders & {ReplacedFileCount} Files";
 
         }
 
@@ -235,6 +231,7 @@ namespace StatusApp
                 string destinationPath = destination.path;
                 CopyDirectory(sourceFolder, destinationPath);
             }
+
         }
 
         private void CopyDirectory(string sourceDir, string destinationDir)
@@ -243,15 +240,14 @@ namespace StatusApp
             if (!Directory.Exists(destinationDir))
             {
                 Directory.CreateDirectory(destinationDir);
-                createdFolderCount++;
+                CreatedFolderCount++;
             }
-
 
             foreach (string file in Directory.GetFiles(sourceDir))
             {
                 string fileName = Path.GetFileName(file);
                 string destFile = Path.Combine(destinationDir, fileName);
-                if (!File.Exists(destFile)) { createdFileCount++; }
+                if (!File.Exists(destFile)) { CreatedFileCount++; }
                 File.Copy(file, destFile, overwrite: true);
 
             }
@@ -263,14 +259,15 @@ namespace StatusApp
                 if (!Directory.Exists(destSubDir))
                 {
                     Directory.CreateDirectory(destSubDir);
-                    createdFolderCount++;
+                    CreatedFolderCount++;
                 }
                 CopyDirectory(subDir, destSubDir);
 
             }
-            if (createdFileCount > 0 || createdFolderCount > 0)
+
+            if (CreatedFileCount > 0 || CreatedFolderCount > 0)
             {
-                txtCopyCount.Content = $" Created {createdFolderCount} Folders & {createdFileCount} Files ";
+                txtCopyCount.Content = $" Created {CreatedFolderCount} Folders & {CreatedFileCount} Files ";
             }
             else
             { txtCopyCount.Content = " All files are similar. No new files to create "; }
@@ -286,14 +283,13 @@ namespace StatusApp
 
             string backupSubFolder = Path.Combine(backupFolder, backupPath, Path.GetFileName(sourceFolder));
 
-            // Backup the source 
-
             if (!Directory.Exists(backupSubFolder))
             {
                 Directory.CreateDirectory(backupSubFolder);
             }
-            BackupSource(sourceFolder, backupSubFolder);
+            //BackupSource(sourceFolder, backupSubFolder);
         }
+
         private void BackupSource(string sourceFolder, string destinationFolder)
         {
             // Move all files
@@ -342,7 +338,6 @@ namespace StatusApp
             {
                 File.WriteAllText(logPath, "Rollback Log: \n ----------------------------------------------------------------------------------\n");
             }
-
 
             foreach (var item in commonFiles)
             {
@@ -400,8 +395,6 @@ namespace StatusApp
                 SelectedBackupPath = Path.Combine(ConfigData.backupFolder, selectedFolderName);
             }
         }
-
-        private FileSystemWatcher _backupFolderWatcher;
 
         private void InitializeBackupFolderWatcher()
         {
@@ -463,6 +456,7 @@ namespace StatusApp
         private void showRollbackBtn_Click(object sender, RoutedEventArgs e)
         {
             rollbackPopup.IsOpen = true;
+            InitializeBackupFolderWatcher();
         }
 
         private void MainWindow_Loaded(object sender, RoutedEventArgs e)
