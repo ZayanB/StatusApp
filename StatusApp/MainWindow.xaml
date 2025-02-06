@@ -5,7 +5,8 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:StatusApp"
         mc:Ignorable="d"
-        Title="MainWindow" Height="450" Width="800">
+        Title="SafeCopy" Height="450" Width="800"
+        Icon="C:\Users\Zayan Breiche\Projects\StatusApp\StatusApp\logoIcon.ico">
     <Grid Background="Beige">
         <Grid.RowDefinitions>
             <RowDefinition  Height="10*"/>
