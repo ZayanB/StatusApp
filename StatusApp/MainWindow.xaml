@@ -86,7 +86,7 @@
 
                     </Grid.RowDefinitions>
 
-                    <ComboBox  x:Name="BackupDropdown" Margin="25,10,25,0" SelectionChanged="BackupDropdown_SelectionChanged" FontSize="15" Height="30"/>
+                    <ComboBox  x:Name="BackupDropdown" Margin="25,10,25,0" FontSize="15" Height="30"/>
 
                     <Button Grid.Row="1" Content="RollBack" FontSize="15" Name="rollbackBtn" Click="rollbackBtn_Click" Margin="25,0,25,10" Height="30"/>
 
