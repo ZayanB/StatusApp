@@ -34,17 +34,25 @@ namespace StatusApp
             {
                 if (File.Exists(ConfigFilePath))
                 {
-                    InitializeComponent();
-
                     string jsonString = File.ReadAllText(ConfigFilePath);
 
                     ConfigData = JsonSerializer.Deserialize<Config>(jsonString);
 
-                    DataContext = this;
+                    if (CheckFolders())
+                    {
+                        InitializeComponent();
 
-                    AddDestinationLabels();
+                        DataContext = this;
 
-                    this.Loaded += MainWindow_Loaded;
+                        AddDestinationLabels();
+
+                        this.Loaded += MainWindow_Loaded;
+                    }
+                    else
+                    {
+                        Application.Current.Shutdown();
+                    }
+
                 }
                 else
                 {
@@ -64,25 +72,24 @@ namespace StatusApp
         {
             try
             {
-                if (!CheckFolders())
+                if (CheckSourceFolder())
                 {
-                    return;
+                    DateTime timestamp = CreateBackupInstance();
+
+                    BackupDestination(timestamp);
+
+                    CopySourceToDestinations();
+
+                    CreateBackupSource(timestamp);
+
+                    BackupFolderCount = 0;
+                    BackupFileCount = 0;
+                    ReplacedFolderCount = 0;
+                    ReplacedFileCount = 0;
+                    CreatedFolderCount = 0;
+                    CreatedFileCount = 0;
                 }
 
-                DateTime timestamp = CreateBackupInstance();
-
-                BackupDestination(timestamp);
-
-                CopySourceToDestinations();
-
-                CreateBackupSource(timestamp);
-
-                BackupFolderCount = 0;
-                BackupFileCount = 0;
-                ReplacedFolderCount = 0;
-                ReplacedFileCount = 0;
-                CreatedFolderCount = 0;
-                CreatedFileCount = 0;
             }
             catch (Exception ex)
             {
@@ -91,9 +98,9 @@ namespace StatusApp
             }
 
         }
-       
-        //method to check folders
-        private bool CheckFolders()
+
+        // method to check source folder
+        private bool CheckSourceFolder()
         {
             string sourceFolder = ConfigData.sourceFolder;
             string backupFolder = ConfigData.backupFolder;
@@ -103,6 +110,14 @@ namespace StatusApp
                 MessageBox.Show($"{SourceFolderName} is Empty", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 return false;
             }
+
+            return true;
+        }
+        //method to check folders
+        private bool CheckFolders()
+        {
+            string sourceFolder = ConfigData.sourceFolder;
+            string backupFolder = ConfigData.backupFolder;
 
             if (!Directory.Exists(sourceFolder))
             {
@@ -127,7 +142,7 @@ namespace StatusApp
             }
             return true;
         }
-       
+
         //method to create backup folder with timestamp
         private DateTime CreateBackupInstance()
         {
@@ -141,7 +156,7 @@ namespace StatusApp
 
             return currentTime;
         }
-       
+
         //method to compare source and destination
         private List<string> CompareDirectoryPath(string path1, string path2)
         {
@@ -153,7 +168,7 @@ namespace StatusApp
 
             return commonItems;
         }
-       
+
         //method to get backup folder name
         private string GetBackupName(DateTime backupStamp)
         {
