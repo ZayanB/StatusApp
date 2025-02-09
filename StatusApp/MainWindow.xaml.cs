@@ -24,9 +24,7 @@ namespace StatusApp
         private static readonly string RollbackFile = "Rollback Log.txt";
 
         private static readonly string AppDirectory = AppDomain.CurrentDomain.BaseDirectory;
-        //private static readonly string ConfigFilePath = Path.Combine(AppDirectory, "config.json");
-
-        private static readonly string ConfigFilePath = "C:\\Users\\Zayan Breiche\\Projects\\StatusApp\\StatusApp\\config.json";
+        private static readonly string ConfigFilePath = Path.Combine(AppDirectory, "config.json");
 
         public Config ConfigData { get; set; }
 
