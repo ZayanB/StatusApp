@@ -6,7 +6,7 @@
         xmlns:local="clr-namespace:StatusApp"
         mc:Ignorable="d"
         Title="SafeCopy" Height="450" Width="800"
-        Icon="C:\Users\Zayan Breiche\Projects\StatusApp\StatusApp\logoIcon.ico">
+        Icon="pack://application:,,,/logoIcon.ico">
     <Grid Background="Beige">
         <Grid.RowDefinitions>
             <RowDefinition  Height="10*"/>
