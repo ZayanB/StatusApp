@@ -1,6 +1,6 @@
 {
     "tempFolderPath": "C:\\Users\\Zayan Breiche\\Desktop\\Temp",
     "unwantedExtensions": [ "tif" ],
-    "deleteOldFoldersByDays": 0,
-    "executionTimerInterval": 1
+    "DeleteOldFoldersByDays": 10,
+    "ExecutionTimerIntervalInDays": 1
 }
