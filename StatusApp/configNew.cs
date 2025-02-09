@@ -11,9 +11,9 @@ namespace StatusApp
         public string tempFolderPath { get; set; }
         public List<string> unwantedExtensions { get; set; }
 
-        public int deleteOldFoldersByDays { get; set; }
+        public int DeleteOldFoldersByDays { get; set; }
 
-        public int executionTimerInterval { get; set; }
+        public int ExecutionTimerIntervalInDays { get; set; }
 
     }
 }

@@ -1,15 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
+﻿using System.Windows;
 using System.IO;
 using System.Text.Json;
 
@@ -30,46 +19,38 @@ namespace StatusApp
 
         public Window1()
         {
-            //if (File.Exists(ConfigFilePath))
-            //{
-            //    string jsonString = File.ReadAllText(ConfigFilePath);
+            if (File.Exists(ConfigFilePath))
+            {
+                string jsonString = File.ReadAllText(ConfigFilePath);
 
-            //    ConfigData = JsonSerializer.Deserialize<configNew>(jsonString);
-            //    int executionTimerInterval = ConfigData.executionTimerInterval;
+                ConfigData = JsonSerializer.Deserialize<configNew>(jsonString);
 
-            //    int executionTimerInMilliseconds = (int)TimeSpan.FromDays(executionTimerInterval).TotalMilliseconds;
+                int executionTimerInterval = ConfigData.ExecutionTimerIntervalInDays;
 
-            //    repeatTask = new Timer(new TimerCallback(PerformTask), null, 0, executionTimerInMilliseconds);
-            //}
-            //else
-            //{
-            //    Console.WriteLine($"Configuration File not found at {ConfigFilePath}");
-            //    Application.Current.Shutdown();
-            //}
+                int executionTimerInMilliseconds = (int)TimeSpan.FromDays(executionTimerInterval).TotalMilliseconds;
 
-            PerformTask();
+                repeatTask = new Timer(new TimerCallback(PerformTask), null, 0, executionTimerInMilliseconds);
+            }
+            else
+            {
+                Console.WriteLine($"Configuration File not found at {ConfigFilePath}");
+                Application.Current.Shutdown();
+            }
         }
 
-        //private void PerformTask(object state)
-        private void PerformTask()
+        private void PerformTask(object state)
         {
             try
             {
                 InitializeComponent();
 
-                List<string> allTempFolders = GetAllItems();
+                List<string> foldersToDelete = GetFoldersToDelete();
 
-                List<string> oldFolders = FilterOldFolders(allTempFolders);
+                DeleteFolders(foldersToDelete);
 
-                List<string> nameGuidFolders = FilterByName(oldFolders);
-
-                List<string> unwantedFolders = FilterByExtension(nameGuidFolders);
-
-                //DeleteFolders(unwantedFolders);
-
-                foreach (string folder in unwantedFolders)
+                foreach (string unwantedFolder in foldersToDelete)
                 {
-                    Console.WriteLine(folder);
+                    Console.WriteLine(unwantedFolder);
                 }
 
             }
@@ -79,24 +60,39 @@ namespace StatusApp
                 Application.Current.Shutdown();
             }
         }
+
+        private List<string> GetFoldersToDelete()
+        {
+            List<string> folders = GetAllFolders();
+
+            folders = FilterOldFolders(folders);
+
+            folders = FilterByName(folders);
+
+            folders = FilterByExtension(folders);
+
+            return folders;
+
+        }
+
         //method to get all folders
-        private List<string> GetAllItems()
+        private List<string> GetAllFolders()
         {
             string tempFolderPath = ConfigData.tempFolderPath;
 
-            List<string> tempFolders = Directory.GetDirectories(tempFolderPath).ToList();
+            List<string> allFolders = Directory.GetDirectories(tempFolderPath).ToList();
 
-            return tempFolders;
+            return allFolders;
         }
 
         //method to get old folders only
-        private List<string> FilterOldFolders(List<string> folders)
+        private List<string> FilterOldFolders(List<string> allfolders)
         {
-            int filterValue = ConfigData.deleteOldFoldersByDays;
+            int dateFilterValue = ConfigData.DeleteOldFoldersByDays;
 
-            DateTime deleteDate = DateTime.Now.AddDays(-filterValue);
+            DateTime deleteDate = DateTime.Now.AddDays(-dateFilterValue);
 
-            var oldFolders = folders.Where(dir => Directory.GetCreationTime(dir) < deleteDate).ToList();
+            var oldFolders = allfolders.Where(dir => Directory.GetCreationTime(dir) < deleteDate).ToList();
 
             return oldFolders;
         }
@@ -104,14 +100,13 @@ namespace StatusApp
         //method to fiter guid folders
         private List<string> FilterByName(List<string> folders)
         {
-            var guidFolders = folders.Where(path =>
+            var namedFolders = folders.Where(path =>
             {
                 string folderName = Path.GetFileName(path);
                 return folderName.StartsWith("{") && folderName.EndsWith("}") && Guid.TryParse(folderName.Trim('{', '}'), out _);
             }).ToList();
 
-            return guidFolders;
-
+            return namedFolders;
         }
 
         //methods to filter guid folder that contain specific extensions or empty
@@ -119,19 +114,18 @@ namespace StatusApp
         {
             var unwantedExtensions = ConfigData.unwantedExtensions;
 
-            var unwantedFolders = folders.Where(dir => IsDirectoryUnwanted(dir, unwantedExtensions)).ToList();
+            var foldersToDelete = folders.Where(dir => IsDirectoryUnwanted(dir, unwantedExtensions)).ToList();
 
-            return unwantedFolders;
+            return foldersToDelete;
         }
 
         private bool IsDirectoryUnwanted(string directoryPath, List<string> unwantedExtensions)
         {
             if (!Directory.EnumerateFileSystemEntries(directoryPath).Any()) { return true; }
 
-            bool isUnwanted = Directory.GetFiles(directoryPath, "*.*", SearchOption.AllDirectories).Any(file => unwantedExtensions.Contains(Path.GetExtension(file).TrimStart('.'), StringComparer.OrdinalIgnoreCase));
+            bool isUnwanted = Directory.GetFiles(directoryPath, "*.*", SearchOption.TopDirectoryOnly).Any(file => unwantedExtensions.Contains(Path.GetExtension(file).TrimStart('.'), StringComparer.OrdinalIgnoreCase));
 
             return isUnwanted;
-
         }
 
         //method to delete unwanted folders 
@@ -139,10 +133,15 @@ namespace StatusApp
         {
             foreach (string dir in folders)
             {
-                Directory.Delete(dir, true);
+                try
+                {
+                    Directory.Delete(dir, true);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine(ex.Message);
+                }
             }
-
         }
     }
-
 }
