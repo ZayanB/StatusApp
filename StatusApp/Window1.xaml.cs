@@ -25,11 +25,14 @@ namespace StatusApp
 
                 ConfigData = JsonSerializer.Deserialize<configNew>(jsonString);
 
+                InitializeComponent();
+
                 int executionTimerInterval = ConfigData.ExecutionTimerIntervalInDays;
 
                 int executionTimerInMilliseconds = (int)TimeSpan.FromDays(executionTimerInterval).TotalMilliseconds;
 
                 repeatTask = new Timer(new TimerCallback(PerformTask), null, 0, executionTimerInMilliseconds);
+
             }
             else
             {
@@ -38,19 +41,28 @@ namespace StatusApp
             }
         }
 
+        private bool ValidateFolderPath()
+        {
+            string tempFolderPath = ConfigData.tempFolderPath;
+
+            if (!Directory.Exists(tempFolderPath))
+            {
+                Console.WriteLine($"Folder not found at {tempFolderPath}");
+                return false;
+            }
+
+            return true;
+        }
+
         private void PerformTask(object state)
         {
             try
             {
-                InitializeComponent();
-
-                List<string> foldersToDelete = GetFoldersToDelete();
-
-                DeleteFolders(foldersToDelete);
-
-                foreach (string unwantedFolder in foldersToDelete)
+                if (ValidateFolderPath())
                 {
-                    Console.WriteLine(unwantedFolder);
+                    List<string> foldersToDelete = GetFoldersToDelete();
+
+                    DeleteFolders(foldersToDelete);
                 }
 
             }
