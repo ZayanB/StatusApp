@@ -9,17 +9,21 @@ using System.IO;
 
 namespace StatusApp
 {
-    public class Destination
+    public class FolderInfo
     {
         public string name { get; set; }
         public string path { get; set; }
     }
+
+
+
     public class Config
     {
-        public string sourceFolder { get; set; }
-        public List<Destination> destinationFolders { get; set; }
+        public List<FolderInfo> destinationFolders { get; set; }
+
+        public List<FolderInfo> sourceFolders { get; set; }
         public string backupFolder { get; set; }
-   
+
         public int keepBackupsCount { get; set; }
 
     }
