@@ -25,41 +25,25 @@ namespace StatusApp
 
         private static readonly string AppDirectory = AppDomain.CurrentDomain.BaseDirectory;
         private static readonly string ConfigFilePath = Path.Combine(AppDirectory, "config.json");
+        private static string ApplicationChoice = "frontend";
 
-        public Config ConfigData { get; set; }
 
         public MainWindow()
         {
             try
             {
-                if (File.Exists(ConfigFilePath))
-                {
-                    string jsonString = File.ReadAllText(ConfigFilePath);
+                InitializeComponent();
 
-                    ConfigData = JsonSerializer.Deserialize<Config>(jsonString);
-
-                    if (CheckFolders())
-                    {
-                        InitializeComponent();
-
-                        DataContext = this;
-
-                        AddDestinationLabels();
-
-                        this.Loaded += MainWindow_Loaded;
-
-                    }
-                    else
-                    {
-                        Application.Current.Shutdown();
-                    }
-
-                }
-                else
+                if (!LoadConfigFile())
                 {
                     MessageBox.Show($"Config file not found at {ConfigFilePath}.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                     Application.Current.Shutdown();
+
                 }
+                LoadApplicationOptions();
+
+
+                this.Loaded += MainWindow_Loaded;
             }
             catch (Exception ex)
             {
@@ -68,12 +52,103 @@ namespace StatusApp
 
         }
 
+        private bool LoadConfigFile()
+        {
+            if (File.Exists(ConfigFilePath))
+            {
+                ConfigManager.LoadConfig(ConfigFilePath);
+
+                //var defaultApp = ConfigManager.Config.DefaultApp;
+                //var frontendConfig = ConfigManager.Config.Applications["frontend"];
+
+                //Console.WriteLine($"Default App: {defaultApp}");
+                //Console.WriteLine($"Frontend Source Folder: {frontendConfig.sourceFolder}");
+                //foreach (var destination in ConfigManager.Config.Applications["frontend"].destinationFolders)
+                //{
+                //    string destinationPath = destination.path;
+                //    Console.WriteLine(destinationPath);
+                //}
+
+                //foreach (var application in ConfigManager.Config.Applications.Keys)
+                //{
+                //    RadioButton radioButton = new RadioButton()
+                //    {
+                //        Content = application,
+                //        GroupName = "Choices",
+                //        IsChecked = (application == ApplicationChoice)
+                //    };
+                //    radioButton.Checked += (s, e) =>
+                //    {
+                //        ApplicationChoice = ((RadioButton)s).Content.ToString();
+                //        //SelectedChoiceText.Text = $"Selected: {ApplicationChoice}";
+                //        //Console.WriteLine(ApplicationChoice);
+                //        //GetContentsByChoice();
+                //        //string choice=radioButton
+                //    };
+                //    //RadioButtonsContainer.Items.Add(radioButton);
+                //}
+                return true;
+            }
+
+            return false;
+        }
+
+        //method to check folders
+        private bool CheckFolders()
+        {
+            string selectedApp = applicationDropdown.SelectedItem.ToString();
+            string sourcePath = ConfigManager.Config.Applications[ApplicationChoice].sourceFolder;
+
+            if (!Directory.Exists(sourcePath))
+            {
+                MessageBox.Show($"{SourceFolderName} is not existing at: {sourcePath}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                return false;
+            }
+
+            string backupFolder = ConfigManager.Config.Applications[ApplicationChoice].backupFolder;
+
+            if (!Directory.Exists(backupFolder))
+            {
+                MessageBox.Show($"{BackupFolderName} is not existing at: {backupFolder}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                return false;
+            }
+
+            foreach (var destination in ConfigManager.Config.Applications[ApplicationChoice].destinationFolders)
+            {
+                string destinationPath = destination.path;
+
+                if (!Directory.Exists(destinationPath))
+                {
+                    MessageBox.Show($"{DestinationFolderName} is not existing at: {destinationPath}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        // method to check source folder
+        private bool CheckSourceFolder()
+        {
+            string selectedApp = applicationDropdown.SelectedItem.ToString();
+
+            string sourcePath = ConfigManager.Config.Applications[ApplicationChoice].sourceFolder;
+            if (!Directory.EnumerateFileSystemEntries(sourcePath).Any())
+            {
+                MessageBox.Show($"{SourceFolderName} is Empty. Operation can't be completed.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                return false;
+            }
+
+            return true;
+        }
+
         //run button method
         private void runBtn_Click(object sender, RoutedEventArgs e)
         {
             try
             {
-                if (CheckSourceFolder())
+                Console.WriteLine(applicationDropdown.SelectedItem.ToString());
+
+                if (CheckSourceFolder() && CheckFolders())
                 {
                     DateTime timestamp = CreateBackupInstance();
 
@@ -81,7 +156,7 @@ namespace StatusApp
 
                     CopySourceToDestinations();
 
-                    CreateBackupSource(timestamp);
+                    //CreateBackupSource(timestamp);
 
                     BackupFolderCount = 0;
                     BackupFileCount = 0;
@@ -100,57 +175,10 @@ namespace StatusApp
 
         }
 
-        // method to check source folder
-        private bool CheckSourceFolder()
-        {
-            string sourcePath = ConfigData.sourceFolder;
-            if (!Directory.EnumerateFileSystemEntries(sourcePath).Any())
-            {
-                MessageBox.Show($"{SourceFolderName} is Empty. Operation can't be completed.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                return false;
-            }
-
-
-            return true;
-        }
-        //method to check folders
-        private bool CheckFolders()
-        {
-            string sourcePath = ConfigData.sourceFolder;
-
-            if (!Directory.Exists(sourcePath))
-            {
-                MessageBox.Show($"{SourceFolderName} is not existing at: {sourcePath}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                return false;
-            }
-
-
-
-            string backupFolder = ConfigData.backupFolder;
-
-            if (!Directory.Exists(backupFolder))
-            {
-                MessageBox.Show($"{BackupFolderName} is not existing at: {backupFolder}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                return false;
-            }
-
-            foreach (var destination in ConfigData.destinationFolders)
-            {
-                string destinationPath = destination.path;
-
-                if (!Directory.Exists(destinationPath))
-                {
-                    MessageBox.Show($"{DestinationFolderName} is not existing at: {destinationPath}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                    return false;
-                }
-            }
-            return true;
-        }
-
         //method to create backup folder with timestamp
         private DateTime CreateBackupInstance()
         {
-            string backupFolder = ConfigData.backupFolder;
+            string backupFolder = ConfigManager.Config.Applications[ApplicationChoice].backupFolder;
 
             DateTime currentTime = DateTime.Now;
             string backupFolderSub = "Backup_" + currentTime.ToString("yyyy-MM-dd_HH-mm-ss");
@@ -176,7 +204,8 @@ namespace StatusApp
         //method to get backup folder name
         private string GetBackupName(DateTime backupStamp)
         {
-            string backupPath = Path.Combine(ConfigData.backupFolder, BackupFolderName + backupStamp.ToString("_yyyy-MM-dd_HH-mm-ss"));
+            string backupFolderPath = ConfigManager.Config.Applications[ApplicationChoice].backupFolder;
+            string backupPath = Path.Combine(backupFolderPath, BackupFolderName + backupStamp.ToString("_yyyy-MM-dd_HH-mm-ss"));
             return backupPath;
         }
 
@@ -189,9 +218,9 @@ namespace StatusApp
 
             //Compare source with all destinations to check for common files
 
-            string sourcePath = ConfigData.sourceFolder;
+            string sourcePath = ConfigManager.Config.Applications[ApplicationChoice].sourceFolder;
 
-            foreach (var destination in ConfigData.destinationFolders)
+            foreach (var destination in ConfigManager.Config.Applications[ApplicationChoice].destinationFolders)
             {
                 string destinationPath = destination.path;
 
@@ -216,8 +245,6 @@ namespace StatusApp
                     txtReplacedCount.Content = $"Nothing to replace between {SourceFolderName} and {DestinationFolderName}";
                 }
             }
-
-
 
         }
 
@@ -274,9 +301,9 @@ namespace StatusApp
         //methods to copy from source to destination
         private void CopySourceToDestinations()
         {
-            string sourceFolder = ConfigData.sourceFolder;
+            string sourceFolder = ConfigManager.Config.Applications[ApplicationChoice].sourceFolder;
 
-            foreach (var destination in ConfigData.destinationFolders)
+            foreach (var destination in ConfigManager.Config.Applications[ApplicationChoice].destinationFolders)
             {
                 string destinationPath = destination.path;
                 CopyDirectory(sourceFolder, destinationPath);
@@ -324,13 +351,13 @@ namespace StatusApp
 
         }
 
-        //methods to backup source (empty it)
+        //methods to backup source(empty it)
         private void CreateBackupSource(DateTime backupStamp)
         {
-            string backupFolder = ConfigData.backupFolder;
+            string backupFolder = ConfigManager.Config.Applications[ApplicationChoice].backupFolder;
             string backupPath = GetBackupName(backupStamp);
 
-            string sourceFolder = ConfigData.sourceFolder;
+            string sourceFolder = ConfigManager.Config.Applications[ApplicationChoice].sourceFolder;
 
             string backupSubFolder = Path.Combine(backupFolder, backupPath, Path.GetFileName(sourceFolder));
 
@@ -361,12 +388,13 @@ namespace StatusApp
             }
         }
 
-        //method for rollback 
+        //method for rollback
         private void Rollback(string backupFolder)
         {
+            string backupFolderPath = ConfigManager.Config.Applications[ApplicationChoice].backupFolder;
             string backupPath = Path.Combine(backupFolder, DestinationFolderName);
             string backupFolderName = Path.GetFileName(backupFolder);
-            string logPath = Path.Combine(ConfigData.backupFolder, RollbackFile);
+            string logPath = Path.Combine(backupFolderPath, RollbackFile);
             string rollbackDateTime = DateTime.Now.ToString("yyyy-MM-dd_HH:mm:ss");
 
             if (!File.Exists(logPath))
@@ -375,7 +403,7 @@ namespace StatusApp
             }
             Log(logPath, $"Rollback of {backupFolderName} on {rollbackDateTime}: \n-----------------------------------------------------------------\n\n");
 
-            foreach (var destination in ConfigData.destinationFolders)
+            foreach (var destination in ConfigManager.Config.Applications[ApplicationChoice].destinationFolders)
             {
                 string rollbackPath = Path.Combine(backupPath, destination.name);
                 string destPath = destination.path;
@@ -390,7 +418,7 @@ namespace StatusApp
 
         private void RollBackItems(string sourceDir, string destDir, List<string> commonFiles)
         {
-            string logPath = Path.Combine(ConfigData.backupFolder, RollbackFile);
+            string logPath = Path.Combine(ConfigManager.Config.Applications[ApplicationChoice].backupFolder, RollbackFile);
 
             foreach (var item in commonFiles)
             {
@@ -422,7 +450,7 @@ namespace StatusApp
         //drodown menu methods
         private void LoadBackupOptions()
         {
-            var backups = Directory.GetDirectories(ConfigData.backupFolder)
+            var backups = Directory.GetDirectories(ConfigManager.Config.Applications[ApplicationChoice].backupFolder)
             .OrderByDescending(Directory.GetCreationTime)
             .Select(dir => new { Name = Path.GetFileName(dir), Path = dir })
             .ToList();
@@ -441,6 +469,16 @@ namespace StatusApp
             BackupDropdown.SelectedIndex = 0;
 
         }
+        private void LoadApplicationOptions()
+        {
+            var applicationOptions = ConfigManager.Config.Applications.Keys.ToList();
+            applicationDropdown.ItemsSource = applicationOptions;
+            applicationDropdown.SelectedIndex = 0;
+            ApplicationChoice = applicationDropdown.SelectedItem.ToString();
+
+        }
+
+
 
         private void showRollbackBtn_Click(object sender, RoutedEventArgs e)
         {
@@ -451,10 +489,11 @@ namespace StatusApp
         //Cleanup Method
         private void CleanupBackups()
         {
+            string backupFolderPath = ConfigManager.Config.Applications[ApplicationChoice].backupFolder;
 
-            int keepBackupsCount = ConfigData.keepBackupsCount;
+            int keepBackupsCount = ConfigManager.Config.Applications[ApplicationChoice].keepBackupsCount;
 
-            var backups = Directory.GetDirectories(ConfigData.backupFolder).OrderByDescending(dir => Directory.GetCreationTime(dir)).ToList();
+            var backups = Directory.GetDirectories(backupFolderPath).OrderByDescending(dir => Directory.GetCreationTime(dir)).ToList();
 
             if (backups.Count > keepBackupsCount)
             {
@@ -487,7 +526,9 @@ namespace StatusApp
 
         private void AddDestinationLabels()
         {
-            foreach (var destination in ConfigData.destinationFolders)
+            DestinationLabelsPanel.Children.Clear();
+
+            foreach (var destination in ConfigManager.Config.Applications[ApplicationChoice].destinationFolders)
             {
                 var label = new Label
                 {
@@ -497,7 +538,24 @@ namespace StatusApp
                 };
                 DestinationLabelsPanel.Children.Add(label);
             }
+            Console.WriteLine($"Im CALLED {ApplicationChoice}");
         }
 
+        private void AddSourceLabel()
+        {
+            SourceFolderLabel.Content = ConfigManager.Config.Applications[ApplicationChoice].sourceFolder;
+        }
+        private void AddBackupLabel()
+        {
+            BackupFolderLabel.Content = ConfigManager.Config.Applications[ApplicationChoice].backupFolder;
+        }
+
+        private void applicationDropdown_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            ApplicationChoice = applicationDropdown.SelectedItem.ToString();
+            AddSourceLabel();
+            AddBackupLabel();
+            AddDestinationLabels();
+        }
     }
 }
