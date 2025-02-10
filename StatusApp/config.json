@@ -1,5 +1,15 @@
 {
-    "sourceFolder": "C:\\Users\\Zayan Breiche\\dummy\\Source",
+    "sourceFolders": [
+        {
+            "name": "SourceA",
+            "path": "C:\\Users\\Zayan Breiche\\dummy\\Source\\SourceA"
+        },
+        {
+            "name": "SourceB",
+            "path": "C:\\Users\\Zayan Breiche\\dummy\\Source\\SourceB"
+        }
+
+    ],
     "destinationFolders": [
         {
             "name": "ServerX",

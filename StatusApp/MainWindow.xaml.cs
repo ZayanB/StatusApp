@@ -47,6 +47,7 @@ namespace StatusApp
                         AddDestinationLabels();
 
                         this.Loaded += MainWindow_Loaded;
+
                     }
                     else
                     {
@@ -102,13 +103,14 @@ namespace StatusApp
         // method to check source folder
         private bool CheckSourceFolder()
         {
-            string sourceFolder = ConfigData.sourceFolder;
-            string backupFolder = ConfigData.backupFolder;
-
-            if (!Directory.EnumerateFileSystemEntries(sourceFolder).Any())
+            foreach (var source in ConfigData.sourceFolders)
             {
-                MessageBox.Show($"{SourceFolderName} is Empty", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                return false;
+                string sourcePath = source.path;
+                if (!Directory.EnumerateFileSystemEntries(sourcePath).Any())
+                {
+                    MessageBox.Show($"{source.name} is Empty. Operation can't be completed.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    return false;
+                }
             }
 
             return true;
@@ -116,14 +118,21 @@ namespace StatusApp
         //method to check folders
         private bool CheckFolders()
         {
-            string sourceFolder = ConfigData.sourceFolder;
+
+            foreach (var source in ConfigData.sourceFolders)
+            {
+                string sourcePath = source.path;
+
+                if (!Directory.Exists(sourcePath))
+                {
+                    MessageBox.Show($"{SourceFolderName} is not existing at: {sourcePath}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    return false;
+                }
+
+            }
+
             string backupFolder = ConfigData.backupFolder;
 
-            if (!Directory.Exists(sourceFolder))
-            {
-                MessageBox.Show($"{SourceFolderName} is not existing at: {sourceFolder}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                return false;
-            }
             if (!Directory.Exists(backupFolder))
             {
                 MessageBox.Show($"{BackupFolderName} is not existing at: {backupFolder}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
@@ -179,37 +188,47 @@ namespace StatusApp
         //methods to backup destination if same as source & create backup log
         private void BackupDestination(DateTime backupStamp)
         {
-            string sourceFolder = ConfigData.sourceFolder;
             string backupPath = GetBackupName(backupStamp);
 
             string destinationBackupFolder = Path.Combine(backupPath, DestinationFolderName);
 
-            //Compare source with all destinations to check for common files 
-            foreach (var destination in ConfigData.destinationFolders)
+            //Compare source with all destinations to check for common files
+
+            foreach (var source in ConfigData.sourceFolders)
             {
-                string destinationPath = destination.path;
+                string sourcePath = source.path;
 
-                var commonFiles = CompareDirectoryPath(sourceFolder, destinationPath);
+                foreach (var destination in ConfigData.destinationFolders)
+                {
+                    string destinationPath = destination.path;
 
-                if (commonFiles.Count > 0)
-                {
-                    if (!Directory.Exists(destinationBackupFolder))
+
+                    var commonFiles = CompareDirectoryPath(sourcePath, destinationPath);
+
+
+
+                    if (commonFiles.Count > 0)
                     {
-                        Directory.CreateDirectory(destinationBackupFolder);
+                        if (!Directory.Exists(destinationBackupFolder))
+                        {
+                            Directory.CreateDirectory(destinationBackupFolder);
+                        }
+                        string specificBackupFolder = Path.Combine(destinationBackupFolder, destination.name);
+                        if (!Directory.Exists(specificBackupFolder))
+                        {
+                            Directory.CreateDirectory(specificBackupFolder);
+                        }
+                        BackupItems(destinationPath, specificBackupFolder, commonFiles, backupStamp);
                     }
-                    string specificBackupFolder = Path.Combine(destinationBackupFolder, destination.name);
-                    if (!Directory.Exists(specificBackupFolder))
+                    else
                     {
-                        Directory.CreateDirectory(specificBackupFolder);
+                        txtBackupCount.Content = $" No common files between {SourceFolderName} and {DestinationFolderName} to backup. Backed up only {SourceFolderName}";
+                        txtReplacedCount.Content = $"Nothing to replace between {SourceFolderName} and {DestinationFolderName}";
                     }
-                    BackupItems(destinationPath, specificBackupFolder, commonFiles, backupStamp);
                 }
-                else
-                {
-                    txtBackupCount.Content = $" No common files between {SourceFolderName} and {DestinationFolderName} to backup. Backed up only {SourceFolderName}";
-                    txtReplacedCount.Content = $"Nothing to replace between {SourceFolderName} and {DestinationFolderName}";
-                }
+
             }
+
         }
 
         private void BackupItems(string sourceDir, string destDir, List<string> commonFiles, DateTime backupStamp)
@@ -265,12 +284,15 @@ namespace StatusApp
         //methods to copy from source to destination
         private void CopySourceToDestinations()
         {
-            string sourceFolder = ConfigData.sourceFolder;
-
-            foreach (var destination in ConfigData.destinationFolders)
+            foreach (var source in ConfigData.sourceFolders)
             {
-                string destinationPath = destination.path;
-                CopyDirectory(sourceFolder, destinationPath);
+                string sourceFolder = source.path;
+
+                foreach (var destination in ConfigData.destinationFolders)
+                {
+                    string destinationPath = destination.path;
+                    CopyDirectory(sourceFolder, destinationPath);
+                }
             }
 
         }
@@ -319,17 +341,20 @@ namespace StatusApp
         private void CreateBackupSource(DateTime backupStamp)
         {
             string backupFolder = ConfigData.backupFolder;
-            string sourceFolder = ConfigData.sourceFolder;
             string backupPath = GetBackupName(backupStamp);
 
-
-            string backupSubFolder = Path.Combine(backupFolder, backupPath, Path.GetFileName(sourceFolder));
-
-            if (!Directory.Exists(backupSubFolder))
+            foreach (var source in ConfigData.sourceFolders)
             {
-                Directory.CreateDirectory(backupSubFolder);
+                string sourceFolder = source.path;
+
+                string backupSubFolder = Path.Combine(backupFolder, backupPath, SourceFolderName, Path.GetFileName(sourceFolder));
+
+                if (!Directory.Exists(backupSubFolder))
+                {
+                    Directory.CreateDirectory(backupSubFolder);
+                }
+                BackupSource(sourceFolder, backupSubFolder);
             }
-            BackupSource(sourceFolder, backupSubFolder);
         }
 
         private void BackupSource(string sourceFolder, string destinationFolder)
@@ -340,7 +365,6 @@ namespace StatusApp
                 string fileName = Path.GetFileName(file);
                 string destFile = Path.Combine(destinationFolder, fileName);
                 File.Move(file, destFile);
-
             }
 
             // Move all directories
