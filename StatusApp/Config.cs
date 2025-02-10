@@ -21,10 +21,12 @@ namespace StatusApp
     {
         public List<FolderInfo> destinationFolders { get; set; }
 
-        public List<FolderInfo> sourceFolders { get; set; }
+
         public string backupFolder { get; set; }
 
         public int keepBackupsCount { get; set; }
+
+        public string sourceFolder { get; set; }
 
     }
 }

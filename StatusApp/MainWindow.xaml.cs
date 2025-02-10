@@ -103,33 +103,28 @@ namespace StatusApp
         // method to check source folder
         private bool CheckSourceFolder()
         {
-            foreach (var source in ConfigData.sourceFolders)
+            string sourcePath = ConfigData.sourceFolder;
+            if (!Directory.EnumerateFileSystemEntries(sourcePath).Any())
             {
-                string sourcePath = source.path;
-                if (!Directory.EnumerateFileSystemEntries(sourcePath).Any())
-                {
-                    MessageBox.Show($"{source.name} is Empty. Operation can't be completed.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                    return false;
-                }
+                MessageBox.Show($"{SourceFolderName} is Empty. Operation can't be completed.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                return false;
             }
+
 
             return true;
         }
         //method to check folders
         private bool CheckFolders()
         {
+            string sourcePath = ConfigData.sourceFolder;
 
-            foreach (var source in ConfigData.sourceFolders)
+            if (!Directory.Exists(sourcePath))
             {
-                string sourcePath = source.path;
-
-                if (!Directory.Exists(sourcePath))
-                {
-                    MessageBox.Show($"{SourceFolderName} is not existing at: {sourcePath}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                    return false;
-                }
-
+                MessageBox.Show($"{SourceFolderName} is not existing at: {sourcePath}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                return false;
             }
+
+
 
             string backupFolder = ConfigData.backupFolder;
 
@@ -194,40 +189,35 @@ namespace StatusApp
 
             //Compare source with all destinations to check for common files
 
-            foreach (var source in ConfigData.sourceFolders)
+            string sourcePath = ConfigData.sourceFolder;
+
+            foreach (var destination in ConfigData.destinationFolders)
             {
-                string sourcePath = source.path;
+                string destinationPath = destination.path;
 
-                foreach (var destination in ConfigData.destinationFolders)
+                var commonFiles = CompareDirectoryPath(sourcePath, destinationPath);
+
+                if (commonFiles.Count > 0)
                 {
-                    string destinationPath = destination.path;
-
-
-                    var commonFiles = CompareDirectoryPath(sourcePath, destinationPath);
-
-
-
-                    if (commonFiles.Count > 0)
+                    if (!Directory.Exists(destinationBackupFolder))
                     {
-                        if (!Directory.Exists(destinationBackupFolder))
-                        {
-                            Directory.CreateDirectory(destinationBackupFolder);
-                        }
-                        string specificBackupFolder = Path.Combine(destinationBackupFolder, destination.name);
-                        if (!Directory.Exists(specificBackupFolder))
-                        {
-                            Directory.CreateDirectory(specificBackupFolder);
-                        }
-                        BackupItems(destinationPath, specificBackupFolder, commonFiles, backupStamp);
+                        Directory.CreateDirectory(destinationBackupFolder);
                     }
-                    else
+                    string specificBackupFolder = Path.Combine(destinationBackupFolder, destination.name);
+                    if (!Directory.Exists(specificBackupFolder))
                     {
-                        txtBackupCount.Content = $" No common files between {SourceFolderName} and {DestinationFolderName} to backup. Backed up only {SourceFolderName}";
-                        txtReplacedCount.Content = $"Nothing to replace between {SourceFolderName} and {DestinationFolderName}";
+                        Directory.CreateDirectory(specificBackupFolder);
                     }
+                    BackupItems(destinationPath, specificBackupFolder, commonFiles, backupStamp);
                 }
-
+                else
+                {
+                    txtBackupCount.Content = $" No common files between {SourceFolderName} and {DestinationFolderName} to backup. Backed up only {SourceFolderName}";
+                    txtReplacedCount.Content = $"Nothing to replace between {SourceFolderName} and {DestinationFolderName}";
+                }
             }
+
+
 
         }
 
@@ -284,15 +274,12 @@ namespace StatusApp
         //methods to copy from source to destination
         private void CopySourceToDestinations()
         {
-            foreach (var source in ConfigData.sourceFolders)
-            {
-                string sourceFolder = source.path;
+            string sourceFolder = ConfigData.sourceFolder;
 
-                foreach (var destination in ConfigData.destinationFolders)
-                {
-                    string destinationPath = destination.path;
-                    CopyDirectory(sourceFolder, destinationPath);
-                }
+            foreach (var destination in ConfigData.destinationFolders)
+            {
+                string destinationPath = destination.path;
+                CopyDirectory(sourceFolder, destinationPath);
             }
 
         }
@@ -343,18 +330,15 @@ namespace StatusApp
             string backupFolder = ConfigData.backupFolder;
             string backupPath = GetBackupName(backupStamp);
 
-            foreach (var source in ConfigData.sourceFolders)
+            string sourceFolder = ConfigData.sourceFolder;
+
+            string backupSubFolder = Path.Combine(backupFolder, backupPath, Path.GetFileName(sourceFolder));
+
+            if (!Directory.Exists(backupSubFolder))
             {
-                string sourceFolder = source.path;
-
-                string backupSubFolder = Path.Combine(backupFolder, backupPath, SourceFolderName, Path.GetFileName(sourceFolder));
-
-                if (!Directory.Exists(backupSubFolder))
-                {
-                    Directory.CreateDirectory(backupSubFolder);
-                }
-                BackupSource(sourceFolder, backupSubFolder);
+                Directory.CreateDirectory(backupSubFolder);
             }
+            BackupSource(sourceFolder, backupSubFolder);
         }
 
         private void BackupSource(string sourceFolder, string destinationFolder)
