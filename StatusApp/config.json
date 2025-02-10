@@ -1,21 +1,43 @@
 {
-    "sourceFolder": "C:\\Users\\Zayan Breiche\\dummy\\Source",
+    "DefaultApp": "frontend",
+    "Applications": {
 
-    "destinationFolders": [
-        {
-            "name": "ServerX",
-            "path": "C:\\Users\\Zayan Breiche\\dummy\\Destinations\\ServerX"
+        "frontend": {
+            "sourceFolder": "C:\\Users\\Zayan Breiche\\dummy\\Source",
+
+            "destinationFolders": [
+                {
+                    "name": "ServerX",
+                    "path": "C:\\Users\\Zayan Breiche\\dummy\\Destinations\\ServerX"
+                },
+                {
+                    "name": "ServerY",
+                    "path": "C:\\Users\\Zayan Breiche\\dummy\\Destinations\\ServerY"
+                },
+                {
+                    "name": "ServerZ",
+                    "path": "C:\\Users\\Zayan Breiche\\dummy\\Destinations\\ServerZ"
+                }
+
+            ],
+            "backupFolder": "C:\\Users\\Zayan Breiche\\dummy\\Backup",
+            "keepBackupsCount": 10
         },
-        {
-            "name": "ServerY",
-            "path": "C:\\Users\\Zayan Breiche\\dummy\\Destinations\\ServerY"
-        },
-        {
-            "name": "ServerZ",
-            "path": "C:\\Users\\Zayan Breiche\\dummy\\Destinations\\ServerZ"
+
+        "backend": {
+            "sourceFolder": "C:\\Users\\Zayan Breiche\\dummy\\Destinations\\ServerX",
+            "destinationFolders": [
+                {
+                    "name": "x",
+                    "path": "C:\\Users\\Zayan Breiche\\dummy\\Destinations\\ServerX"
+                },
+                {
+                    "name": "x",
+                    "path": "C:\\Users\\Zayan Breiche\\dummy\\Destinations\\ServerX"
+                }
+            ],
+            "backupFolder": "C:\\Users\\Zayan Breiche\\dummy\\Destinations\\ServerX",
+            "keepBackupsCount": 10
         }
-
-    ],
-    "backupFolder": "C:\\Users\\Zayan Breiche\\dummy\\Backup",
-    "keepBackupsCount": 10
+    }
 }
