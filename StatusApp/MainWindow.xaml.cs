@@ -30,6 +30,9 @@ namespace StatusApp
 
         private static bool IsAppLoaded = false;
         private static bool SkipInitialChange = true;
+        private DeploymentMethods deploymentMethods = new DeploymentMethods();
+        private dynamic FolderPaths;
+
 
         public MainWindow()
         {
@@ -79,64 +82,21 @@ namespace StatusApp
             BackupFolderLabel.Content = ConfigManager.Config.Applications[ApplicationChoice].backupFolder;
             AddDestinationLabels();
 
-            if (!CheckFolders()) { Application.Current.Shutdown(); }
+            FolderPaths = ConfigManager.Config.Applications[ApplicationChoice];
 
+            bool checkFolders = deploymentMethods.CheckFolders(FolderPaths);
+            if (!checkFolders) { Application.Current.Shutdown(); }
+            
             if (IsAppLoaded) { CleanupBackups(); }
         }
 
-        //method to check folders
-        private bool CheckFolders()
-        {
-            string sourcePath = ConfigManager.Config.Applications[ApplicationChoice].sourceFolder;
-
-            if (!Directory.Exists(sourcePath))
-            {
-                MessageBox.Show($"{SourceFolderName} for {ApplicationChoice} is not existing at: {sourcePath}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                return false;
-            }
-
-            string backupFolder = ConfigManager.Config.Applications[ApplicationChoice].backupFolder;
-
-            if (!Directory.Exists(backupFolder))
-            {
-                MessageBox.Show($"{BackupFolderName} for {ApplicationChoice} is not existing at: {backupFolder}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                return false;
-            }
-
-            foreach (var destination in ConfigManager.Config.Applications[ApplicationChoice].destinationFolders)
-            {
-                string destinationPath = destination.path;
-
-                if (!Directory.Exists(destinationPath))
-                {
-                    MessageBox.Show($"{DestinationFolderName} for {ApplicationChoice} is not existing at: {destinationPath}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                    return false;
-                }
-            }
-            return true;
-        }
-
-        // method to check source folder
-        private bool CheckSourceFolder()
-        {
-            string sourcePath = ConfigManager.Config.Applications[ApplicationChoice].sourceFolder;
-            if (!Directory.EnumerateFileSystemEntries(sourcePath).Any())
-            {
-                MessageBox.Show($"{SourceFolderName} is Empty. Operation can't be completed.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                return false;
-            }
-
-            return true;
-        }
-
-        //run button method
         private void runBtn_Click(object sender, RoutedEventArgs e)
         {
             try
             {
-                if (CheckSourceFolder())
+                if (deploymentMethods.CheckSourceFolder(FolderPaths))
                 {
-                    DateTime timestamp = CreateBackupInstance();
+                    DateTime timestamp = deploymentMethods.CreateBackupInstance(FolderPaths);
 
                     BackupDestination(timestamp);
 
@@ -161,33 +121,6 @@ namespace StatusApp
 
         }
 
-        //method to create backup folder with timestamp
-        private DateTime CreateBackupInstance()
-        {
-            string backupFolder = ConfigManager.Config.Applications[ApplicationChoice].backupFolder;
-
-            DateTime currentTime = DateTime.Now;
-            string backupFolderSub = "Backup_" + currentTime.ToString("yyyy-MM-dd_HH-mm-ss");
-            string backupFolderPath = Path.Combine(backupFolder, backupFolderSub);
-
-            Directory.CreateDirectory(backupFolderPath);
-
-            return currentTime;
-        }
-
-        //method to compare source and destination
-        private List<string> CompareDirectoryPath(string path1, string path2)
-        {
-            List<string> itemsInPath1 = Directory.EnumerateFileSystemEntries(path1, "*", SearchOption.AllDirectories).Select(path => Path.GetRelativePath(path1, path)).ToList();
-
-            List<string> itemsInPath2 = Directory.EnumerateFileSystemEntries(path2, "*", SearchOption.AllDirectories).Select(path => Path.GetRelativePath(path2, path)).ToList();
-
-            List<string> commonItems = itemsInPath1.Intersect(itemsInPath2).ToList();
-
-            return commonItems;
-        }
-
-        //method to get backup folder name
         private string GetBackupName(DateTime backupStamp)
         {
             string backupFolderPath = ConfigManager.Config.Applications[ApplicationChoice].backupFolder;
@@ -210,7 +143,7 @@ namespace StatusApp
             {
                 string destinationPath = destination.path;
 
-                var commonFiles = CompareDirectoryPath(sourcePath, destinationPath);
+                var commonFiles = deploymentMethods.CompareDirectoryPath(sourcePath, destinationPath);
 
                 if (commonFiles.Count > 0)
                 {
@@ -390,7 +323,7 @@ namespace StatusApp
                 string rollbackPath = Path.Combine(backupPath, destination.name);
                 string destPath = destination.path;
 
-                var commonItems = CompareDirectoryPath(rollbackPath, destPath);
+                var commonItems = deploymentMethods.CompareDirectoryPath(rollbackPath, destPath);
 
                 RollBackItems(rollbackPath, destPath, commonItems);
             }
