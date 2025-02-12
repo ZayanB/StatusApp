@@ -16,8 +16,7 @@ namespace StatusApp
     }
 
     public class AppConfigRoot
-    {
-        public string DefaultApp { get; set; }
+    {   
         public Dictionary<string, ApplicationConfig> Applications { get; set; }
 
     }

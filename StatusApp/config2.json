@@ -1,0 +1,18 @@
+{
+    "sourceFolder": "",
+    "destinationFolder": [
+        {
+            "name": "",
+            "path": ""
+        },
+        {
+            "name": "",
+            "path": ""
+        }
+    ],
+    "backupFolder": "",
+    "keepBackupsCount": 10,
+    "filesToKeep": [ "", "", "" ],
+    "foldersToKeep": [ "", "", "" ]
+
+}
