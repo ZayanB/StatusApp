@@ -77,17 +77,18 @@ namespace StatusApp
             ApplicationChoice = applicationDropdown.SelectedItem.ToString();
             SkipInitialChange = false;
 
-            ClearLabels();
-            SourceFolderLabel.Content = ConfigManager.Config.Applications[ApplicationChoice].sourceFolder;
-            BackupFolderLabel.Content = ConfigManager.Config.Applications[ApplicationChoice].backupFolder;
-            AddDestinationLabels();
-
             FolderPaths = ConfigManager.Config.Applications[ApplicationChoice];
+
+            deploymentMethods.ClearLabels(txtCopyCount, txtBackupCount, txtReplacedCount);
+            SourceFolderLabel.Content = FolderPaths.sourceFolder;
+            BackupFolderLabel.Content = FolderPaths.backupFolder;
+            deploymentMethods.AddDestinationLabels(FolderPaths, DestinationLabelsPanel);
+
 
             bool checkFolders = deploymentMethods.CheckFolders(FolderPaths);
             if (!checkFolders) { Application.Current.Shutdown(); }
-            
-            if (IsAppLoaded) { CleanupBackups(); }
+
+            if (IsAppLoaded) { deploymentMethods.CleanupBackups(FolderPaths, ApplicationChoice); }
         }
 
         private void runBtn_Click(object sender, RoutedEventArgs e)
@@ -121,25 +122,20 @@ namespace StatusApp
 
         }
 
-        private string GetBackupName(DateTime backupStamp)
-        {
-            string backupFolderPath = ConfigManager.Config.Applications[ApplicationChoice].backupFolder;
-            string backupPath = Path.Combine(backupFolderPath, BackupFolderName + backupStamp.ToString("_yyyy-MM-dd_HH-mm-ss"));
-            return backupPath;
-        }
+      
 
         //methods to backup destination if same as source & create backup log
         private void BackupDestination(DateTime backupStamp)
-        {
-            string backupPath = GetBackupName(backupStamp);
+        { 
+            string backupPath = deploymentMethods.GetBackupName(FolderPaths, backupStamp, BackupFolderName);
 
             string destinationBackupFolder = Path.Combine(backupPath, DestinationFolderName);
 
             //Compare source with all destinations to check for common files
 
-            string sourcePath = ConfigManager.Config.Applications[ApplicationChoice].sourceFolder;
+            string sourcePath = FolderPaths.sourceFolder;
 
-            foreach (var destination in ConfigManager.Config.Applications[ApplicationChoice].destinationFolders)
+            foreach (var destination in FolderPaths.destinationFolders)
             {
                 string destinationPath = destination.path;
 
@@ -169,7 +165,8 @@ namespace StatusApp
 
         private void BackupItems(string sourceDir, string destDir, List<string> commonFiles, DateTime backupStamp)
         {
-            string backupPath = GetBackupName(backupStamp);
+            string backupPath = deploymentMethods.GetBackupName(FolderPaths, backupStamp, BackupFolderName);
+
             string backupDateTime = "Backup " + backupStamp.ToString("yyyy-MM-dd_HH:mm:ss");
 
             string backupLogFile = Path.Combine(backupPath, "Backup Log.txt");
@@ -219,9 +216,9 @@ namespace StatusApp
         //methods to copy from source to destination
         private void CopySourceToDestinations()
         {
-            string sourceFolder = ConfigManager.Config.Applications[ApplicationChoice].sourceFolder;
+            string sourceFolder = FolderPaths.sourceFolder;
 
-            foreach (var destination in ConfigManager.Config.Applications[ApplicationChoice].destinationFolders)
+            foreach (var destination in FolderPaths.destinationFolders)
             {
                 string destinationPath = destination.path;
                 CopyDirectory(sourceFolder, destinationPath);
@@ -270,7 +267,9 @@ namespace StatusApp
         private void CreateBackupSource(DateTime backupStamp)
         {
             string backupFolder = ConfigManager.Config.Applications[ApplicationChoice].backupFolder;
-            string backupPath = GetBackupName(backupStamp);
+           
+            string backupPath = deploymentMethods.GetBackupName(FolderPaths, backupStamp, BackupFolderName);
+
 
             string sourceFolder = ConfigManager.Config.Applications[ApplicationChoice].sourceFolder;
 
@@ -306,7 +305,7 @@ namespace StatusApp
         //method for rollback
         private void Rollback(string backupFolder)
         {
-            string backupFolderPath = ConfigManager.Config.Applications[ApplicationChoice].backupFolder;
+            string backupFolderPath = FolderPaths.backupFolder;
             string backupPath = Path.Combine(backupFolder, DestinationFolderName);
             string backupFolderName = Path.GetFileName(backupFolder);
             string logPath = Path.Combine(backupFolderPath, RollbackFile);
@@ -318,14 +317,18 @@ namespace StatusApp
             }
             Log(logPath, $"Rollback of {backupFolderName} on {rollbackDateTime}: \n-----------------------------------------------------------------\n\n");
 
-            foreach (var destination in ConfigManager.Config.Applications[ApplicationChoice].destinationFolders)
+            foreach (var destination in FolderPaths.destinationFolders)
             {
                 string rollbackPath = Path.Combine(backupPath, destination.name);
                 string destPath = destination.path;
 
-                var commonItems = deploymentMethods.CompareDirectoryPath(rollbackPath, destPath);
+                if (Directory.Exists(rollbackPath))
+                {
+                    var commonItems = deploymentMethods.CompareDirectoryPath(rollbackPath, destPath);
+                    RollBackItems(rollbackPath, destPath, commonItems);
 
-                RollBackItems(rollbackPath, destPath, commonItems);
+                }
+
             }
             Log(logPath, $"\n-----------------------------------------------------------------\n");
             MessageBox.Show($" Rolled backup {backupFolderName} back to {DestinationFolderName}", "Rollback Success", MessageBoxButton.OK);
@@ -333,7 +336,7 @@ namespace StatusApp
 
         private void RollBackItems(string sourceDir, string destDir, List<string> commonFiles)
         {
-            string logPath = Path.Combine(ConfigManager.Config.Applications[ApplicationChoice].backupFolder, RollbackFile);
+            string logPath = Path.Combine(FolderPaths.backupFolder, RollbackFile);
 
             foreach (var item in commonFiles)
             {
@@ -363,96 +366,20 @@ namespace StatusApp
         }
 
         //drodown menu methods
-        private void LoadBackupOptions()
-        {
-            var backups = Directory.GetDirectories(ConfigManager.Config.Applications[ApplicationChoice].backupFolder)
-            .OrderByDescending(Directory.GetCreationTime)
-            .Select(dir => new { Name = Path.GetFileName(dir), Path = dir })
-            .ToList();
-
-            if (backups.Count == 0)
-            {
-                BackupDropdown.ItemsSource = new List<string> { "No backups found" };
-                BackupDropdown.SelectedIndex = 0;
-                rollbackBtn.IsEnabled = false;
-                return;
-            }
-
-            BackupDropdown.ItemsSource = backups;
-            BackupDropdown.DisplayMemberPath = "Name";
-            BackupDropdown.SelectedValuePath = "Path";
-            BackupDropdown.SelectedIndex = 0;
-
-        }
 
         private void showRollbackBtn_Click(object sender, RoutedEventArgs e)
         {
             rollbackPopup.IsOpen = true;
-            LoadBackupOptions();
-        }
 
-        //Cleanup Method
-        private void CleanupBackups()
-        {
-            string backupFolderPath = ConfigManager.Config.Applications[ApplicationChoice].backupFolder;
-
-            int keepBackupsCount = ConfigManager.Config.Applications[ApplicationChoice].keepBackupsCount;
-
-            var backups = Directory.GetDirectories(backupFolderPath).OrderByDescending(dir => Directory.GetCreationTime(dir)).ToList();
-
-            if (backups.Count > keepBackupsCount)
-            {
-
-                MessageBoxResult result = MessageBox.Show($"Do you want to cleanup backups for {ApplicationChoice}?", "Confirmation", MessageBoxButton.YesNo, MessageBoxImage.Question);
-
-                if (result == MessageBoxResult.Yes)
-                {
-                    MessageBoxResult result2 = MessageBox.Show($"This will keep the most recent {keepBackupsCount} backups. Are you sure you want to proceed?", "Confirmation", MessageBoxButton.YesNo, MessageBoxImage.Question);
-                    if (result2 == MessageBoxResult.Yes)
-                    {
-                        backups = backups.Skip(keepBackupsCount).ToList();
-                        foreach (var backup in backups)
-                        {
-                            Directory.Delete(backup, true);
-                        }
-                        MessageBox.Show($"Deleted {backups.Count} backups", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
-                    }
-
-                }
-
-            }
-
+            deploymentMethods.LoadBackupOptions(FolderPaths, BackupDropdown, rollbackBtn);
         }
 
         private void MainWindow_Loaded(object sender, RoutedEventArgs e)
         {
             if (!SkipInitialChange)
             {
-                CleanupBackups();
+                deploymentMethods.CleanupBackups(FolderPaths, ApplicationChoice);
             }
-        }
-
-        private void AddDestinationLabels()
-        {
-            DestinationLabelsPanel.Children.Clear();
-
-            foreach (var destination in ConfigManager.Config.Applications[ApplicationChoice].destinationFolders)
-            {
-                var label = new Label
-                {
-                    Content = $"Name: {destination.name}\nPath: {destination.path}",
-                    FontSize = 15,
-                    HorizontalAlignment = HorizontalAlignment.Left,
-                };
-                DestinationLabelsPanel.Children.Add(label);
-            }
-        }
-
-        private void ClearLabels()
-        {
-            txtCopyCount.Content = string.Empty;
-            txtBackupCount.Content = string.Empty;
-            txtReplacedCount.Content = string.Empty;
         }
 
         private void Label_MouseDown(object sender, System.Windows.Input.MouseButtonEventArgs e)

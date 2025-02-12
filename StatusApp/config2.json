@@ -1,18 +1,38 @@
 {
-    "sourceFolder": "",
-    "destinationFolder": [
-        {
-            "name": "",
-            "path": ""
+    "Applications": {
+        "Angular": {
+            "sourceFolder": "C:\\Users\\Zayan Breiche\\Desktop\\New folder\\source1",
+            "destinationFolders": [
+                {
+                    "name": "ServerX",
+                    "path": "C:\\Users\\Zayan Breiche\\Desktop\\New folder\\destinations1\\serverX"
+                },
+                {
+                    "name": "ServerY",
+                    "path": "C:\\Users\\Zayan Breiche\\Desktop\\New folder\\destinations1\\serverY"
+                }
+            ],
+            "backupFolder": "C:\\Users\\Zayan Breiche\\Desktop\\New folder\\backup1",
+            "keepBackupsCount": 10,
+            "filesToKeep": [ "gfhdh", "hdf", "fhd" ],
+            "foldersToKeep": [ "hfd", "fdh", "hdf" ]
         },
-        {
-            "name": "",
-            "path": ""
+        "REact": {
+            "sourceFolder": "C:\\Users\\Zayan Breiche\\Desktop\\New folder\\source2",
+            "destinationFolders": [
+                {
+                    "name": "ServerX2",
+                    "path": "C:\\Users\\Zayan Breiche\\Desktop\\New folder\\destination2\\serverX"
+                },
+                {
+                    "name": "ServerY2",
+                    "path": "C:\\Users\\Zayan Breiche\\Desktop\\New folder\\destination2\\serverY"
+                }
+            ],
+            "backupFolder": "C:\\Users\\Zayan Breiche\\Desktop\\New folder\\backup2",
+            "keepBackupsCount": 10,
+            "filesToKeep": [ "gfhdh", "hdf", "fhd" ],
+            "foldersToKeep": [ "hfd", "fdh", "hdf" ]
         }
-    ],
-    "backupFolder": "",
-    "keepBackupsCount": 10,
-    "filesToKeep": [ "", "", "" ],
-    "foldersToKeep": [ "", "", "" ]
-
+    }
 }

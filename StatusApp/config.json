@@ -1,7 +1,5 @@
 {
-    "DefaultApp": "frontend",
     "Applications": {
-
         "frontend": {
             "sourceFolder": "C:\\Users\\Zayan Breiche\\dummy\\Source",
 
