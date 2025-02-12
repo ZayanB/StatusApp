@@ -25,18 +25,18 @@
         },
 
         "backend": {
-            "sourceFolder": "C:\\Users\\Zayan Breiche\\dummy\\Destinations\\ServerX",
+            "sourceFolder": "C:\\Users\\Zayan Breiche\\Desktop\\bckup2",
             "destinationFolders": [
                 {
                     "name": "x",
-                    "path": "C:\\Users\\Zayan Breiche\\dummy\\Destinations\\ServerX"
+                    "path": "C:\\Users\\Zayan Breiche\\Desktop\\desrt2\\ServerX2"
                 },
                 {
                     "name": "x",
-                    "path": "C:\\Users\\Zayan Breiche\\dummy\\Destinations\\ServerX"
+                    "path": "C:\\Users\\Zayan Breiche\\Desktop\\desrt2\\ServerY2"
                 }
             ],
-            "backupFolder": "C:\\Users\\Zayan Breiche\\dummy\\Destinations\\ServerX",
+            "backupFolder": "C:\\Users\\Zayan Breiche\\Desktop\\bckup2",
             "keepBackupsCount": 10
         }
     }
