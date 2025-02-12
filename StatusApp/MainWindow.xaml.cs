@@ -25,8 +25,11 @@ namespace StatusApp
 
         private static readonly string AppDirectory = AppDomain.CurrentDomain.BaseDirectory;
         private static readonly string ConfigFilePath = Path.Combine(AppDirectory, "config.json");
-        private static string ApplicationChoice = "frontend";
 
+        private static string ApplicationChoice;
+
+        private bool isInitialized = false;
+        private bool skipInitialChange = true;
 
         public MainWindow()
         {
@@ -34,16 +37,21 @@ namespace StatusApp
             {
                 InitializeComponent();
 
-                if (!LoadConfigFile())
+                if (File.Exists(ConfigFilePath))
+                {
+                    ConfigManager.LoadConfig(ConfigFilePath);
+
+                    LoadApplicationOptions();
+
+                    isInitialized = true;
+
+                    this.Loaded += MainWindow_Loaded;
+                }
+                else
                 {
                     MessageBox.Show($"Config file not found at {ConfigFilePath}.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                     Application.Current.Shutdown();
-
                 }
-                LoadApplicationOptions();
-
-
-                this.Loaded += MainWindow_Loaded;
             }
             catch (Exception ex)
             {
@@ -52,56 +60,38 @@ namespace StatusApp
 
         }
 
-        private bool LoadConfigFile()
+        //method to load applications to dropdown
+        private void LoadApplicationOptions()
         {
-            if (File.Exists(ConfigFilePath))
-            {
-                ConfigManager.LoadConfig(ConfigFilePath);
+            var applicationOptions = ConfigManager.Config.Applications.Keys.ToList();
+            applicationDropdown.ItemsSource = applicationOptions;
+            applicationDropdown.SelectedIndex = 0;
+        }
 
-                //var defaultApp = ConfigManager.Config.DefaultApp;
-                //var frontendConfig = ConfigManager.Config.Applications["frontend"];
+        //method to dynamically update ui and check folders whenever application is changed
+        private void applicationDropdown_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            ApplicationChoice = applicationDropdown.SelectedItem.ToString();
+            skipInitialChange = false;
 
-                //Console.WriteLine($"Default App: {defaultApp}");
-                //Console.WriteLine($"Frontend Source Folder: {frontendConfig.sourceFolder}");
-                //foreach (var destination in ConfigManager.Config.Applications["frontend"].destinationFolders)
-                //{
-                //    string destinationPath = destination.path;
-                //    Console.WriteLine(destinationPath);
-                //}
+            ClearLabels();
+            SourceFolderLabel.Content = ConfigManager.Config.Applications[ApplicationChoice].sourceFolder;
+            BackupFolderLabel.Content = ConfigManager.Config.Applications[ApplicationChoice].backupFolder;
+            AddDestinationLabels();
 
-                //foreach (var application in ConfigManager.Config.Applications.Keys)
-                //{
-                //    RadioButton radioButton = new RadioButton()
-                //    {
-                //        Content = application,
-                //        GroupName = "Choices",
-                //        IsChecked = (application == ApplicationChoice)
-                //    };
-                //    radioButton.Checked += (s, e) =>
-                //    {
-                //        ApplicationChoice = ((RadioButton)s).Content.ToString();
-                //        //SelectedChoiceText.Text = $"Selected: {ApplicationChoice}";
-                //        //Console.WriteLine(ApplicationChoice);
-                //        //GetContentsByChoice();
-                //        //string choice=radioButton
-                //    };
-                //    //RadioButtonsContainer.Items.Add(radioButton);
-                //}
-                return true;
-            }
+            if (!CheckFolders()) { Application.Current.Shutdown(); }
 
-            return false;
+            if (isInitialized) { CleanupBackups(); }
         }
 
         //method to check folders
         private bool CheckFolders()
         {
-            string selectedApp = applicationDropdown.SelectedItem.ToString();
             string sourcePath = ConfigManager.Config.Applications[ApplicationChoice].sourceFolder;
 
             if (!Directory.Exists(sourcePath))
             {
-                MessageBox.Show($"{SourceFolderName} is not existing at: {sourcePath}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show($"{SourceFolderName} for {ApplicationChoice} is not existing at: {sourcePath}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 return false;
             }
 
@@ -109,7 +99,7 @@ namespace StatusApp
 
             if (!Directory.Exists(backupFolder))
             {
-                MessageBox.Show($"{BackupFolderName} is not existing at: {backupFolder}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show($"{BackupFolderName} for {ApplicationChoice} is not existing at: {backupFolder}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 return false;
             }
 
@@ -119,7 +109,7 @@ namespace StatusApp
 
                 if (!Directory.Exists(destinationPath))
                 {
-                    MessageBox.Show($"{DestinationFolderName} is not existing at: {destinationPath}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    MessageBox.Show($"{DestinationFolderName} for {ApplicationChoice} is not existing at: {destinationPath}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                     return false;
                 }
             }
@@ -129,8 +119,6 @@ namespace StatusApp
         // method to check source folder
         private bool CheckSourceFolder()
         {
-            string selectedApp = applicationDropdown.SelectedItem.ToString();
-
             string sourcePath = ConfigManager.Config.Applications[ApplicationChoice].sourceFolder;
             if (!Directory.EnumerateFileSystemEntries(sourcePath).Any())
             {
@@ -146,9 +134,7 @@ namespace StatusApp
         {
             try
             {
-                Console.WriteLine(applicationDropdown.SelectedItem.ToString());
-
-                if (CheckSourceFolder() && CheckFolders())
+                if (CheckSourceFolder())
                 {
                     DateTime timestamp = CreateBackupInstance();
 
@@ -250,7 +236,6 @@ namespace StatusApp
 
         private void BackupItems(string sourceDir, string destDir, List<string> commonFiles, DateTime backupStamp)
         {
-
             string backupPath = GetBackupName(backupStamp);
             string backupDateTime = "Backup " + backupStamp.ToString("yyyy-MM-dd_HH:mm:ss");
 
@@ -308,12 +293,10 @@ namespace StatusApp
                 string destinationPath = destination.path;
                 CopyDirectory(sourceFolder, destinationPath);
             }
-
         }
 
         private void CopyDirectory(string sourceDir, string destinationDir)
         {
-
             if (!Directory.Exists(destinationDir))
             {
                 Directory.CreateDirectory(destinationDir);
@@ -348,7 +331,6 @@ namespace StatusApp
             }
             else
             { txtCopyCount.Content = " All files are similar. No new files to create "; }
-
         }
 
         //methods to backup source(empty it)
@@ -469,16 +451,6 @@ namespace StatusApp
             BackupDropdown.SelectedIndex = 0;
 
         }
-        private void LoadApplicationOptions()
-        {
-            var applicationOptions = ConfigManager.Config.Applications.Keys.ToList();
-            applicationDropdown.ItemsSource = applicationOptions;
-            applicationDropdown.SelectedIndex = 0;
-            ApplicationChoice = applicationDropdown.SelectedItem.ToString();
-
-        }
-
-
 
         private void showRollbackBtn_Click(object sender, RoutedEventArgs e)
         {
@@ -498,7 +470,7 @@ namespace StatusApp
             if (backups.Count > keepBackupsCount)
             {
 
-                MessageBoxResult result = MessageBox.Show("Do you want to cleanup backups?", "Confirmation", MessageBoxButton.YesNo, MessageBoxImage.Question);
+                MessageBoxResult result = MessageBox.Show($"Do you want to cleanup backups for {ApplicationChoice}?", "Confirmation", MessageBoxButton.YesNo, MessageBoxImage.Question);
 
                 if (result == MessageBoxResult.Yes)
                 {
@@ -521,7 +493,10 @@ namespace StatusApp
 
         private void MainWindow_Loaded(object sender, RoutedEventArgs e)
         {
-            CleanupBackups();
+            if (!skipInitialChange)
+            {
+                CleanupBackups();
+            }
         }
 
         private void AddDestinationLabels()
@@ -538,24 +513,13 @@ namespace StatusApp
                 };
                 DestinationLabelsPanel.Children.Add(label);
             }
-            Console.WriteLine($"Im CALLED {ApplicationChoice}");
         }
 
-        private void AddSourceLabel()
+        private void ClearLabels()
         {
-            SourceFolderLabel.Content = ConfigManager.Config.Applications[ApplicationChoice].sourceFolder;
-        }
-        private void AddBackupLabel()
-        {
-            BackupFolderLabel.Content = ConfigManager.Config.Applications[ApplicationChoice].backupFolder;
-        }
-
-        private void applicationDropdown_SelectionChanged(object sender, SelectionChangedEventArgs e)
-        {
-            ApplicationChoice = applicationDropdown.SelectedItem.ToString();
-            AddSourceLabel();
-            AddBackupLabel();
-            AddDestinationLabels();
+            txtCopyCount.Content = string.Empty;
+            txtBackupCount.Content = string.Empty;
+            txtReplacedCount.Content = string.Empty;
         }
     }
 }

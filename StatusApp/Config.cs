@@ -38,24 +38,17 @@ namespace StatusApp
     {
         public static AppConfigRoot Config { get; set; }
 
-        public static void  LoadConfig(string filePath)
+        public static void LoadConfig(string filePath)
         {
-            try
-            {
-                string jsonString = File.ReadAllText(filePath);
+            string jsonString = File.ReadAllText(filePath);
 
-                var options = new JsonSerializerOptions
-                {
-                    PropertyNameCaseInsensitive = true,
-                    PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-                };
-
-                Config = JsonSerializer.Deserialize<AppConfigRoot>(jsonString, options);
-            }
-            catch (Exception ex)
+            var options = new JsonSerializerOptions
             {
-                throw new InvalidOperationException("Failed to load operation", ex);
-            }
+                PropertyNameCaseInsensitive = true,
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+            };
+
+            Config = JsonSerializer.Deserialize<AppConfigRoot>(jsonString, options);
         }
     }
 }
