@@ -28,8 +28,8 @@ namespace StatusApp
 
         private static string ApplicationChoice;
 
-        private bool isInitialized = false;
-        private bool skipInitialChange = true;
+        private static bool IsAppLoaded = false;
+        private static bool SkipInitialChange = true;
 
         public MainWindow()
         {
@@ -43,7 +43,7 @@ namespace StatusApp
 
                     LoadApplicationOptions();
 
-                    isInitialized = true;
+                    IsAppLoaded = true;
 
                     this.Loaded += MainWindow_Loaded;
                 }
@@ -72,7 +72,7 @@ namespace StatusApp
         private void applicationDropdown_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             ApplicationChoice = applicationDropdown.SelectedItem.ToString();
-            skipInitialChange = false;
+            SkipInitialChange = false;
 
             ClearLabels();
             SourceFolderLabel.Content = ConfigManager.Config.Applications[ApplicationChoice].sourceFolder;
@@ -81,7 +81,7 @@ namespace StatusApp
 
             if (!CheckFolders()) { Application.Current.Shutdown(); }
 
-            if (isInitialized) { CleanupBackups(); }
+            if (IsAppLoaded) { CleanupBackups(); }
         }
 
         //method to check folders
@@ -493,7 +493,7 @@ namespace StatusApp
 
         private void MainWindow_Loaded(object sender, RoutedEventArgs e)
         {
-            if (!skipInitialChange)
+            if (!SkipInitialChange)
             {
                 CleanupBackups();
             }
