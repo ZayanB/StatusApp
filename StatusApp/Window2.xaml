@@ -6,7 +6,114 @@
         xmlns:local="clr-namespace:StatusApp"
         mc:Ignorable="d"
         Title="Window2" Height="450" Width="800">
-    <Grid>
-        <Label Content="Hello FROM ANGULAR" FontSize="28"/>
+    <Grid Background="#00a99d">
+        <Grid.RowDefinitions>
+            <RowDefinition  Height="10*"/>
+            <RowDefinition Height="70*"/>
+            <RowDefinition Height="30*"/>
+        </Grid.RowDefinitions>
+
+        <Grid Grid.Row="0" Background="Beige">
+
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition/>
+                <ColumnDefinition/>
+                <ColumnDefinition/>
+            </Grid.ColumnDefinitions>
+
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition/>
+                    <ColumnDefinition/>
+                </Grid.ColumnDefinitions>
+                <Label VerticalAlignment="Center" HorizontalAlignment="Center" Content="Window2" FontFamily="Montserrat, Helvetica, Arial, Verdana, sans-serif"  Background="#00a99d" />
+                <Label Grid.Column="1" VerticalAlignment="Center" HorizontalAlignment="Left" Content="Deployment" FontFamily="Montserrat, Helvetica, Arial, Verdana, sans-serif" Margin="10,0,0,0" />
+            </Grid>
+
+
+            <Label Grid.Column="1" VerticalAlignment="Center" HorizontalAlignment="Center" Content="SafeCopy" FontFamily="Montserrat, Helvetica, Arial, Verdana, sans-serif" FontSize="18"/>
+        </Grid>
+
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition/>
+                <ColumnDefinition/>
+            </Grid.ColumnDefinitions>
+
+            <Grid Grid.Column="0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition/>
+                    <ColumnDefinition/>
+                </Grid.ColumnDefinitions>
+
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="10*"/>
+                    <RowDefinition Height="10*"/>
+                    <RowDefinition Height="60*"/>
+                    <RowDefinition Height="10*"/>
+                </Grid.RowDefinitions>
+
+                <Label Content="Source Folder:" HorizontalAlignment="Left" VerticalAlignment="Center" FontSize="15" Margin="5,0,0,0"/>
+                <Label Grid.Column="1" x:Name="SourceFolderLabel" FontSize="15" VerticalAlignment="Center" HorizontalAlignment="Left"/>
+
+                <Label Grid.Row="1" Content="Backup Folder:" HorizontalAlignment="Left" VerticalAlignment="Center" FontSize="15" Margin="5,0,0,0"/>
+                <Label Grid.Row="1" Grid.Column="1" x:Name="BackupFolderLabel" FontSize="15" VerticalAlignment="Center" HorizontalAlignment="Left" />
+
+                <Label Grid.Row="2" Content="Destination Folders:" FontSize="15" VerticalAlignment="Top" HorizontalAlignment="Left" Margin="5,0,0,0"/>
+                <StackPanel Grid.Row="2" Grid.Column="1" x:Name="DestinationLabelsPanel" />
+
+                <Grid Grid.Row="3" RenderTransformOrigin="1.058,0.421" Grid.ColumnSpan="2" Margin="-15,0,57,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="50*"/>
+                        <ColumnDefinition Width="50*"/>
+                    </Grid.ColumnDefinitions>
+                    <Label Grid.Column="0" Content="Application Type:" FontSize="15" Grid.ColumnSpan="2" Margin="38,-2,141,0" VerticalAlignment="Top" />
+                    <ComboBox Grid.Column="1" x:Name="applicationDropdown" FontSize="15" Height="30" SelectionChanged="applicationDropdown_SelectionChanged" VerticalAlignment="Center" />
+                </Grid>
+            </Grid>
+
+            <Grid Grid.Column="1">
+                <Grid.RowDefinitions>
+                    <RowDefinition />
+                    <RowDefinition />
+                    <RowDefinition />
+                    <RowDefinition />
+                    <RowDefinition />
+                </Grid.RowDefinitions>
+
+                <Label Content="Status" FontSize="15" HorizontalAlignment="Left" Margin="0,10,0,0" />
+                <Label Grid.Row="1" x:Name="txtBackupCount" FontSize="14" HorizontalAlignment="Left" />
+                <Label Grid.Row="2" x:Name="txtCopyCount" FontSize="14" HorizontalAlignment="Left" />
+                <Label Grid.Row="3" x:Name="txtReplacedCount" FontSize="14" HorizontalAlignment="Left"/>
+                <Label Grid.Row="4" x:Name="txtRollbackStatus" FontSize="14" HorizontalAlignment="Left" />
+            </Grid>
+        </Grid>
+
+        <Grid Grid.Row="2">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition/>
+                <ColumnDefinition/>
+            </Grid.ColumnDefinitions>
+
+            <Button Content="Start" FontSize="15" Name="runBtn" Click="runBtn_Click" Width="300" Height="50"/>
+
+            <Button Grid.Column="1" Content="Rollback" FontSize="15" x:Name="showRollbackBtn" Click="showRollbackBtn_Click" Width="300" Height="50"/>
+
+            <Popup x:Name="rollbackPopup" Placement="Center" VerticalOffset="-200" StaysOpen="False" AllowsTransparency="True">
+                <Grid Background="Beige" Width="280" Height="200">
+                    <Grid.RowDefinitions>
+
+                        <RowDefinition />
+                        <RowDefinition />
+
+                    </Grid.RowDefinitions>
+
+                    <ComboBox x:Name="BackupDropdown" Margin="25,10,25,0" FontSize="15" Height="30"/>
+                    <Button Grid.Row="1" Content="Rollback" FontSize="15" x:Name="performRollbackBtn" Click="performRollbackBtn_Click" Margin="25,0,25,10" Height="30"/>
+                </Grid>
+
+            </Popup>
+        </Grid>
+
     </Grid>
 </Window>

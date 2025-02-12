@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Controls;
 
 namespace StatusApp
 {
@@ -70,5 +71,99 @@ namespace StatusApp
 
             return commonItems;
         }
+
+        public void LoadBackupOptions(ApplicationConfig appConfig, ComboBox comboBox, Button btn)
+        {
+            var backups = Directory.GetDirectories(appConfig.backupFolder)
+            .OrderByDescending(Directory.GetCreationTime)
+            .Select(dir => new { Name = Path.GetFileName(dir), Path = dir })
+            .ToList();
+
+            if (backups.Count == 0)
+            {
+                comboBox.ItemsSource = new List<string> { "No backups found" };
+                comboBox.SelectedIndex = 0;
+                btn.IsEnabled = false;
+                return;
+            }
+
+            comboBox.ItemsSource = backups;
+            comboBox.DisplayMemberPath = "Name";
+            comboBox.SelectedValuePath = "Path";
+            comboBox.SelectedIndex = 0;
+
+        }
+
+        public void CleanupBackups(ApplicationConfig appConfig, string applicationType)
+        {
+            string backupFolderPath = appConfig.backupFolder;
+
+            int keepBackupsCount = appConfig.keepBackupsCount;
+
+            var backups = Directory.GetDirectories(backupFolderPath).OrderByDescending(dir => Directory.GetCreationTime(dir)).ToList();
+
+            if (backups.Count > keepBackupsCount)
+            {
+                MessageBoxResult result = MessageBox.Show($"Do you want to cleanup backups for {applicationType}?", "Confirmation", MessageBoxButton.YesNo, MessageBoxImage.Question);
+
+                if (result == MessageBoxResult.Yes)
+                {
+                    MessageBoxResult result2 = MessageBox.Show($"This will keep the most recent {keepBackupsCount} backups. Are you sure you want to proceed?", "Confirmation", MessageBoxButton.YesNo, MessageBoxImage.Question);
+                    if (result2 == MessageBoxResult.Yes)
+                    {
+                        backups = backups.Skip(keepBackupsCount).ToList();
+                        foreach (var backup in backups)
+                        {
+                            Directory.Delete(backup, true);
+                        }
+                        MessageBox.Show($"Deleted {backups.Count} backups", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
+                    }
+
+                }
+
+            }
+
+        }
+
+        public void AddDestinationLabels(ApplicationConfig appConfig, StackPanel stackPanel)
+        {
+            stackPanel.Children.Clear();
+
+            foreach (var destination in appConfig.destinationFolders)
+            {
+                var label = new Label
+                {
+                    Content = $"Name: {destination.name}\nPath: {destination.path}",
+                    FontSize = 15,
+                    HorizontalAlignment = HorizontalAlignment.Left,
+                };
+                stackPanel.Children.Add(label);
+            }
+        }
+
+        public void ClearLabels(Label txtCopyCount, Label txtBackupCount, Label txtReplacedCount)
+        {
+            txtCopyCount.Content = string.Empty;
+            txtBackupCount.Content = string.Empty;
+            txtReplacedCount.Content = string.Empty;
+        }
+
+        public string GetBackupName(ApplicationConfig appConfig, DateTime backupStamp,string BackupFolderName)
+        {
+            string backupFolderPath = appConfig.backupFolder;
+            string backupPath = Path.Combine(backupFolderPath, BackupFolderName + backupStamp.ToString("_yyyy-MM-dd_HH-mm-ss"));
+            return backupPath;
+        }
+
+        //private void CopyOriginToTarget(ApplicationConfig appConfig, dynamic originPath, dynamic targetPath, int CreatedFolderCount, int CreatedFileCount)
+        //{
+        //    string sourceFolder = FolderPaths.sourceFolder;
+
+        //    foreach (var destination in FolderPaths.destinationFolders)
+        //    {
+        //        string destinationPath = destination.path;
+        //        CopyDirectory(sourceFolder, destinationPath);
+        //    }
+        //}
     }
 }
