@@ -15,8 +15,25 @@
 
         </Grid.RowDefinitions>
 
-        <Rectangle Fill="#00a99d"/>
-        <Label Content="SafeCopy" FontFamily="Montserrat, Helvetica, Arial, Verdana, sans-serif" FontSize="18" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+        <Grid Background="#00a99d">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition />
+                <ColumnDefinition />
+                <ColumnDefinition />
+            </Grid.ColumnDefinitions>
+
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition/>
+                    <ColumnDefinition/>
+                </Grid.ColumnDefinitions>
+                <Label  VerticalAlignment="Center" Content="Deployment" Grid.ColumnSpan="2" Margin="10,0,124,0" Cursor="Hand" />
+                <Label HorizontalAlignment="Left"  VerticalAlignment="Center" Content="Angular" Grid.ColumnSpan="2" Margin="108,0,0,0" Cursor="Hand" MouseDown="Label_MouseDown" />
+
+            </Grid>
+            <Label Grid.Column="1" Content="SafeCopy" FontFamily="Montserrat, Helvetica, Arial, Verdana, sans-serif" FontSize="18" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+        </Grid>
+
 
 
 
