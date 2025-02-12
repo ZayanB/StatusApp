@@ -521,5 +521,11 @@ namespace StatusApp
             txtBackupCount.Content = string.Empty;
             txtReplacedCount.Content = string.Empty;
         }
+
+        private void Label_MouseDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        {
+            Window2 secondWindow = new Window2();
+            secondWindow.Show();
+        }
     }
 }
