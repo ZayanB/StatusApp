@@ -139,7 +139,7 @@ namespace StatusApp
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine(ex.Message);
+                    Console.WriteLine($"Error deleting {dir}: {ex.Message}");
                 }
             }
         }

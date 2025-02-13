@@ -11,6 +11,13 @@ namespace StatusApp
 {
     public class DeploymentMethods
     {
+        //private DeploymentMethods deploymentMethods = new DeploymentMethods();
+
+        private static readonly string BackupFolderName = "Backup";
+        private static readonly string DestinationFolderName = "Destination";
+        private static readonly string SourceFolderName = "Source";
+        private static readonly string RollbackFile = "Rollback Log.txt";
+
         public bool CheckFolders(ApplicationConfig appConfig)
         {
             if (!Directory.Exists(appConfig.sourceFolder))
@@ -148,22 +155,129 @@ namespace StatusApp
             txtReplacedCount.Content = string.Empty;
         }
 
-        public string GetBackupName(ApplicationConfig appConfig, DateTime backupStamp,string BackupFolderName)
+        public string GetBackupName(ApplicationConfig appConfig, DateTime backupStamp)
         {
             string backupFolderPath = appConfig.backupFolder;
             string backupPath = Path.Combine(backupFolderPath, BackupFolderName + backupStamp.ToString("_yyyy-MM-dd_HH-mm-ss"));
             return backupPath;
         }
 
-        //private void CopyOriginToTarget(ApplicationConfig appConfig, dynamic originPath, dynamic targetPath, int CreatedFolderCount, int CreatedFileCount)
-        //{
-        //    string sourceFolder = FolderPaths.sourceFolder;
+        
+        public void CopySourceToDestination(ApplicationConfig appConfig, Label label, ref int createdFolderCount, ref int createdFileCount)
+        {
+            string sourceFolder = appConfig.sourceFolder;
 
-        //    foreach (var destination in FolderPaths.destinationFolders)
-        //    {
-        //        string destinationPath = destination.path;
-        //        CopyDirectory(sourceFolder, destinationPath);
-        //    }
-        //}
+            foreach (var destination in appConfig.destinationFolders)
+            {
+                string destinationPath = destination.path;
+
+                CopyDirectory(sourceFolder, destinationPath, label, ref createdFolderCount, ref createdFileCount);
+
+            }
+        }
+
+        public void CopyDirectory(string originDir, string targetDir, Label label, ref int folderCount, ref int fileCount)
+        {
+
+            if (!Directory.Exists(targetDir))
+            {
+                Directory.CreateDirectory(targetDir);
+                folderCount++;
+            }
+
+            foreach (string file in Directory.GetFiles(originDir))
+            {
+                string fileName = Path.GetFileName(file);
+                string destFile = Path.Combine(targetDir, fileName);
+                if (!File.Exists(destFile)) { fileCount++; }
+                File.Copy(file, destFile, true);
+            }
+
+            foreach (string subDir in Directory.GetDirectories(originDir))
+            {
+                string subDirName = Path.GetFileName(subDir);
+                string destSubDir = Path.Combine(targetDir, subDirName);
+                if (!Directory.Exists(destSubDir))
+                {
+                    Directory.CreateDirectory(destSubDir);
+                    folderCount++;
+                }
+                CopyDirectory(subDir, destSubDir, label, ref folderCount, ref fileCount);
+            }
+
+
+            if (fileCount > 0 || folderCount > 0)
+            {
+                label.Content = $" Created {folderCount} Folders & {fileCount} Files ";
+            }
+            else
+            { label.Content = " All files are similar. No new files to create "; }
+
+        }
+
+        public void BackupFiles(string sourceDir, string destDir, string item, string backupLogFile, ref int backupFolderCount, ref int backupFileCount)
+        {
+            string sourcePath = Path.Combine(sourceDir, item);
+
+            string destPath = Path.Combine(destDir, item);
+
+            if (Directory.Exists(sourcePath))
+            {
+                if (!Directory.Exists(destPath))
+                {
+                    Directory.CreateDirectory(destPath);
+                    string logEntry = $"Backed up Folder {item} from {sourceDir} to {destDir} \n\n";
+                    Log(backupLogFile, logEntry);
+                    backupFolderCount++;
+                }
+            }
+            else if (File.Exists(sourcePath))
+            {
+                File.Copy(sourcePath, destPath, overwrite: true);
+                string logEntry = $"Backed up File {item} from {sourceDir} to {destDir} \n\n";
+                Log(backupLogFile, logEntry);
+                backupFileCount++;
+            }
+        }
+
+
+        private void Log(string logFilePath, string logEntry)
+        {
+            File.AppendAllText(logFilePath, logEntry);
+        }
+        public void CreateBackupSource(ApplicationConfig appConfig,DateTime backupStamp)
+        {
+            string backupFolder = appConfig.backupFolder;
+
+            string backupPath = GetBackupName(appConfig, backupStamp);
+
+            string sourceFolder = appConfig.sourceFolder;
+
+            string backupSubFolder = Path.Combine(backupFolder, backupPath, Path.GetFileName(sourceFolder));
+
+            if (!Directory.Exists(backupSubFolder))
+            {
+                Directory.CreateDirectory(backupSubFolder);
+            }
+            BackupSource(sourceFolder, backupSubFolder);
+        }
+        private void BackupSource(string sourceFolder, string destinationFolder)
+        {
+            // Move all files
+            foreach (string file in Directory.GetFiles(sourceFolder))
+            {
+                string fileName = Path.GetFileName(file);
+                string destFile = Path.Combine(destinationFolder, fileName);
+                File.Move(file, destFile);
+            }
+
+            // Move all directories
+            foreach (string dir in Directory.GetDirectories(sourceFolder))
+            {
+                string dirName = new DirectoryInfo(dir).Name;
+                string destDir = Path.Combine(destinationFolder, dirName);
+                Directory.Move(dir, destDir);
+            }
+        }
     }
 }
