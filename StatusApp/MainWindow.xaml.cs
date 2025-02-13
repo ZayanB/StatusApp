@@ -95,7 +95,8 @@ namespace StatusApp
         {
             try
             {
-                if (deploymentMethods.CheckSourceFolder(FolderPaths))
+                //if (deploymentMethods.CheckSourceFolder(FolderPaths))
+                if (!deploymentMethods.IsDirectoryEmpty(FolderPaths.sourceFolder))
                 {
                     DateTime timestamp = deploymentMethods.CreateBackupInstance(FolderPaths);
 
@@ -121,8 +122,6 @@ namespace StatusApp
             }
 
         }
-
-
 
         //methods to backup destination if same as source & create backup log
         private void BackupDestination(DateTime backupStamp)
@@ -186,63 +185,6 @@ namespace StatusApp
 
         }
 
-        //method for appending lines to logs
-        private void Log(string logFilePath, string logEntry)
-        {
-            File.AppendAllText(logFilePath, logEntry);
-        }
-
-        //method for rollback
-        private void Rollback(string backupFolder)
-        {
-            string backupFolderPath = FolderPaths.backupFolder;
-            string backupPath = Path.Combine(backupFolder, DestinationFolderName);
-            string backupFolderName = Path.GetFileName(backupFolder);
-            string logPath = Path.Combine(backupFolderPath, RollbackFile);
-            string rollbackDateTime = DateTime.Now.ToString("yyyy-MM-dd_HH:mm:ss");
-
-            if (!File.Exists(logPath))
-            {
-                File.WriteAllText(logPath, "ROLLBACK LOG:\n\n-----------------------------------------------------------------\n");
-            }
-            Log(logPath, $"Rollback of {backupFolderName} on {rollbackDateTime}: \n-----------------------------------------------------------------\n\n");
-
-            foreach (var destination in FolderPaths.destinationFolders)
-            {
-                string rollbackPath = Path.Combine(backupPath, destination.name);
-                string destPath = destination.path;
-
-                if (Directory.Exists(rollbackPath))
-                {
-                    var commonItems = deploymentMethods.CompareDirectoryPath(rollbackPath, destPath);
-                    RollBackItems(rollbackPath, destPath, commonItems);
-
-                }
-
-            }
-            Log(logPath, $"\n-----------------------------------------------------------------\n");
-            MessageBox.Show($" Rolled backup {backupFolderName} back to {DestinationFolderName}", "Rollback Success", MessageBoxButton.OK);
-        }
-
-        private void RollBackItems(string sourceDir, string destDir, List<string> commonFiles)
-        {
-            string logPath = Path.Combine(FolderPaths.backupFolder, RollbackFile);
-
-            foreach (var item in commonFiles)
-            {
-                if (Path.HasExtension(item))
-                {
-                    string sourceItemPath = Path.Combine(sourceDir, item);
-                    string destItemPath = Path.Combine(destDir, item);
-                    File.Copy(sourceItemPath, destItemPath, overwrite: true);
-                    string logEntry = $"Copied {item} from {sourceDir} to {destDir}\n";
-                    Log(logPath, $"{logEntry} \n");
-                }
-            }
-
-        }
-
-        //roll back btn method
         private void rollbackBtn_Click(object sender, RoutedEventArgs e)
         {
             string rollbackPath = BackupDropdown.SelectedValue.ToString();
@@ -250,7 +192,7 @@ namespace StatusApp
             MessageBoxResult result = MessageBox.Show($"Are you sure you want to rollback backup {Path.GetFileName(rollbackPath)} back to {DestinationFolderName}?", "Confirmation", MessageBoxButton.YesNo, MessageBoxImage.Question);
             if (result == MessageBoxResult.Yes)
             {
-                Rollback(rollbackPath);
+                deploymentMethods.Rollback(FolderPaths, rollbackPath);
             }
 
         }
