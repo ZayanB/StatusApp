@@ -15,6 +15,7 @@ using System.Text.Json;
 
 
 
+
 namespace StatusApp
 {
     /// <summary>
@@ -24,6 +25,14 @@ namespace StatusApp
     {
         private static readonly string AppDirectory = AppDomain.CurrentDomain.BaseDirectory;
         private static readonly string ConfigFilePath = Path.Combine(AppDirectory, "config2.json");
+
+        private static readonly string BackupFolderName = "Backup";
+        private static readonly string DestinationFolderName = "Destination";
+
+        private int BackupFolderCount = 0;
+        private int BackupFileCount = 0;
+        public int CreatedFileCount = 0;
+        public int CreatedFolderCount = 0;
 
         private static bool IsAppLoaded = false;
         private static bool SkipInitialChange = true;
@@ -49,7 +58,6 @@ namespace StatusApp
                 Application.Current.Shutdown();
             }
         }
-
         private void LoadApplicationOptions()
         {
             var applicationOptions = ConfigManager.Config.Applications.Keys.ToList();
@@ -63,20 +71,22 @@ namespace StatusApp
             {
                 if (deploymentMethods.CheckSourceFolder(FolderPaths))
                 {
+
                     DateTime timestamp = deploymentMethods.CreateBackupInstance(FolderPaths);
 
                     BackupDestination(timestamp);
 
-                    //CopySourceToDestinations();
+                    KeepWantedItems();
 
-                    //CreateBackupSource(timestamp);
+                    deploymentMethods.CopySourceToDestination(FolderPaths, txtCopyCount, ref CreatedFolderCount, ref CreatedFileCount);
 
-                    //BackupFolderCount = 0;
-                    //BackupFileCount = 0;
-                    //ReplacedFolderCount = 0;
-                    //ReplacedFileCount = 0;
-                    //CreatedFolderCount = 0;
-                    //CreatedFileCount = 0;
+                    deploymentMethods.CreateBackupSource(FolderPaths, timestamp);
+
+                    BackupFolderCount = 0;
+                    BackupFileCount = 0;
+                  
+                    CreatedFolderCount = 0;
+                    CreatedFileCount = 0;
                 }
 
             }
@@ -87,10 +97,126 @@ namespace StatusApp
             }
         }
 
+
+
         private void BackupDestination(DateTime timestamp)
         {
-            //IT IS SAME AS COPY SOURCE TO DESTINATION BUT DIFFERENT
+            string backupPath = deploymentMethods.GetBackupName(FolderPaths, timestamp);
+
+            string destinationBackupFolder = Path.Combine(backupPath, DestinationFolderName);
+
+            foreach (var destination in FolderPaths.destinationFolders)
+            {
+                string destinationPath = destination.path;
+
+                if (!Directory.Exists(destinationBackupFolder))
+                {
+                    Directory.CreateDirectory(destinationBackupFolder);
+                }
+                string specificBackupFolder = Path.Combine(destinationBackupFolder, destination.name);
+                if (!Directory.Exists(specificBackupFolder))
+                {
+                    Directory.CreateDirectory(specificBackupFolder);
+                }
+                BackupAllItems(destinationPath, specificBackupFolder, timestamp);
+            }
         }
+
+        private void KeepWantedItems()
+        {
+            foreach (var destination in FolderPaths.destinationFolders)
+            {
+                string destinationPath = destination.path;
+                List<string> unwantedItems = GetItemsToDelete(destinationPath);
+
+                DeleteItems(unwantedItems);
+
+            }
+        }
+
+        private List<string> GetItemsToDelete(string directoryPath)
+        {
+            List<string> unwantedItems = new List<string>();
+
+            List<string> filesToKeep = FolderPaths.filesToKeep;
+            List<string> foldersTokeep = FolderPaths.foldersToKeep;
+
+            var allFiles = Directory.GetFiles(directoryPath, "*", SearchOption.TopDirectoryOnly);
+
+            var allDirectories = Directory.GetDirectories(directoryPath, "*", SearchOption.TopDirectoryOnly);
+
+            foreach (var file in allFiles)
+            {
+                string fileExtension = Path.GetExtension(file).TrimStart('.').ToLower();
+                if (!filesToKeep.Contains(fileExtension))
+                {
+                    unwantedItems.Add(file);
+                }
+            }
+
+            foreach (var directory in allDirectories)
+            {
+                string folderName = new DirectoryInfo(directory).Name;
+                if (!foldersTokeep.Contains(folderName))
+                {
+                    unwantedItems.Add(directory);
+                }
+            }
+
+            return unwantedItems;
+        }
+
+        private void DeleteItems(List<string> itemsToDelete)
+        {
+            foreach (var item in itemsToDelete)
+            {
+                try
+                {
+                    if (File.Exists(item))
+                    {
+                        File.Delete(item);
+                    }
+                    else if (Directory.Exists(item))
+                    {
+                        Directory.Delete(item, true);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error deleting {item}: {ex.Message}");
+                }
+
+            }
+        }
+
+        private void BackupAllItems(string sourceDir, string destDir, DateTime backupStamp)
+        {
+            string backupPath = deploymentMethods.GetBackupName(FolderPaths, backupStamp);
+
+            string backupDateTime = "Backup " + backupStamp.ToString("yyyy-MM-dd_HH:mm:ss");
+
+            string backupLogFile = Path.Combine(backupPath, "Backup Log.txt");
+
+            if (!File.Exists(backupLogFile))
+            {
+                File.WriteAllText(backupLogFile, $"{backupDateTime} Log: \n------------------------------------------------------------------------------------------------------------------\n\n");
+            }
+
+            foreach (var destination in FolderPaths.destinationFolders)
+            {
+                string destinationPath = destination.path;
+
+                List<string> allDestinationItems = Directory.EnumerateFileSystemEntries(destinationPath, "*", SearchOption.AllDirectories).Select(path => Path.GetRelativePath(destinationPath, path)).ToList();
+
+                foreach (var item in allDestinationItems)
+                {
+                    deploymentMethods.BackupFiles(sourceDir, destDir, item, backupLogFile, ref BackupFolderCount, ref BackupFileCount);
+                }
+            }
+            txtBackupCount.Content = $" Backed Up {BackupFolderCount} Folders & {BackupFileCount} Files ";
+
+        }
+
 
         private void showRollbackBtn_Click(object sender, RoutedEventArgs e)
         {

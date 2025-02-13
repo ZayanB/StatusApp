@@ -15,8 +15,8 @@ namespace StatusApp
         private int BackupFileCount = 0;
         private int ReplacedFolderCount = 0;
         private int ReplacedFileCount = 0;
-        private int CreatedFileCount = 0;
-        private int CreatedFolderCount = 0;
+        public int CreatedFileCount = 0;
+        public int CreatedFolderCount = 0;
 
         private static readonly string BackupFolderName = "Backup";
         private static readonly string DestinationFolderName = "Destination";
@@ -101,9 +101,9 @@ namespace StatusApp
 
                     BackupDestination(timestamp);
 
-                    CopySourceToDestinations();
+                    deploymentMethods.CopySourceToDestination(FolderPaths, txtCopyCount, ref CreatedFolderCount, ref CreatedFileCount);
 
-                    //CreateBackupSource(timestamp);
+                    deploymentMethods.CreateBackupSource(FolderPaths, timestamp);
 
                     BackupFolderCount = 0;
                     BackupFileCount = 0;
@@ -122,12 +122,12 @@ namespace StatusApp
 
         }
 
-      
+
 
         //methods to backup destination if same as source & create backup log
         private void BackupDestination(DateTime backupStamp)
-        { 
-            string backupPath = deploymentMethods.GetBackupName(FolderPaths, backupStamp, BackupFolderName);
+        {
+            string backupPath = deploymentMethods.GetBackupName(FolderPaths, backupStamp);
 
             string destinationBackupFolder = Path.Combine(backupPath, DestinationFolderName);
 
@@ -165,7 +165,7 @@ namespace StatusApp
 
         private void BackupItems(string sourceDir, string destDir, List<string> commonFiles, DateTime backupStamp)
         {
-            string backupPath = deploymentMethods.GetBackupName(FolderPaths, backupStamp, BackupFolderName);
+            string backupPath = deploymentMethods.GetBackupName(FolderPaths, backupStamp);
 
             string backupDateTime = "Backup " + backupStamp.ToString("yyyy-MM-dd_HH:mm:ss");
 
@@ -177,31 +177,10 @@ namespace StatusApp
             }
             foreach (var item in commonFiles)
             {
-                string sourcePath = Path.Combine(sourceDir, item);
-
-                string destPath = Path.Combine(destDir, item);
-
-                if (Directory.Exists(sourcePath))
-                {
-                    if (!Directory.Exists(destPath))
-                    {
-                        Directory.CreateDirectory(destPath);
-                        string logEntry = $"Backed up Folder {item} from {sourceDir} to {destDir} \n\n";
-                        Log(backupLogFile, logEntry);
-                        BackupFolderCount++;
-                        ReplacedFolderCount++;
-                    }
-                }
-                else if (File.Exists(sourcePath))
-                {
-                    File.Copy(sourcePath, destPath, overwrite: true);
-                    string logEntry = $"Backed up File {item} from {sourceDir} to {destDir} \n\n";
-                    Log(backupLogFile, logEntry);
-                    ReplacedFileCount++;
-                    BackupFileCount++;
-                }
+                deploymentMethods.BackupFiles(sourceDir, destDir, item, backupLogFile, ref BackupFolderCount, ref BackupFileCount);
             }
-
+            ReplacedFileCount = BackupFileCount;
+            ReplacedFolderCount = BackupFolderCount;
             txtBackupCount.Content = $" Backed Up {BackupFolderCount} Folders & {BackupFileCount} Files ";
             txtReplacedCount.Content = $" Replaced {ReplacedFolderCount} Folders & {ReplacedFileCount} Files";
 
@@ -211,95 +190,6 @@ namespace StatusApp
         private void Log(string logFilePath, string logEntry)
         {
             File.AppendAllText(logFilePath, logEntry);
-        }
-
-        //methods to copy from source to destination
-        private void CopySourceToDestinations()
-        {
-            string sourceFolder = FolderPaths.sourceFolder;
-
-            foreach (var destination in FolderPaths.destinationFolders)
-            {
-                string destinationPath = destination.path;
-                CopyDirectory(sourceFolder, destinationPath);
-            }
-        }
-
-        private void CopyDirectory(string sourceDir, string destinationDir)
-        {
-            if (!Directory.Exists(destinationDir))
-            {
-                Directory.CreateDirectory(destinationDir);
-                CreatedFolderCount++;
-            }
-
-            foreach (string file in Directory.GetFiles(sourceDir))
-            {
-                string fileName = Path.GetFileName(file);
-                string destFile = Path.Combine(destinationDir, fileName);
-                if (!File.Exists(destFile)) { CreatedFileCount++; }
-                File.Copy(file, destFile, true);
-
-            }
-
-            foreach (string subDir in Directory.GetDirectories(sourceDir))
-            {
-                string subDirName = Path.GetFileName(subDir);
-                string destSubDir = Path.Combine(destinationDir, subDirName);
-                if (!Directory.Exists(destSubDir))
-                {
-                    Directory.CreateDirectory(destSubDir);
-                    CreatedFolderCount++;
-                }
-                CopyDirectory(subDir, destSubDir);
-
-            }
-
-            if (CreatedFileCount > 0 || CreatedFolderCount > 0)
-            {
-                txtCopyCount.Content = $" Created {CreatedFolderCount} Folders & {CreatedFileCount} Files ";
-            }
-            else
-            { txtCopyCount.Content = " All files are similar. No new files to create "; }
-        }
-
-        //methods to backup source(empty it)
-        private void CreateBackupSource(DateTime backupStamp)
-        {
-            string backupFolder = ConfigManager.Config.Applications[ApplicationChoice].backupFolder;
-           
-            string backupPath = deploymentMethods.GetBackupName(FolderPaths, backupStamp, BackupFolderName);
-
-
-            string sourceFolder = ConfigManager.Config.Applications[ApplicationChoice].sourceFolder;
-
-            string backupSubFolder = Path.Combine(backupFolder, backupPath, Path.GetFileName(sourceFolder));
-
-            if (!Directory.Exists(backupSubFolder))
-            {
-                Directory.CreateDirectory(backupSubFolder);
-            }
-            BackupSource(sourceFolder, backupSubFolder);
-        }
-
-        private void BackupSource(string sourceFolder, string destinationFolder)
-        {
-            // Move all files
-            foreach (string file in Directory.GetFiles(sourceFolder))
-            {
-                string fileName = Path.GetFileName(file);
-                string destFile = Path.Combine(destinationFolder, fileName);
-                File.Move(file, destFile);
-            }
-
-            // Move all directories
-            foreach (string dir in Directory.GetDirectories(sourceFolder))
-            {
-                string dirName = new DirectoryInfo(dir).Name;
-                string destDir = Path.Combine(destinationFolder, dirName);
-                Directory.Move(dir, destDir);
-
-            }
         }
 
         //method for rollback

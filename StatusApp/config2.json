@@ -14,8 +14,8 @@
             ],
             "backupFolder": "C:\\Users\\Zayan Breiche\\Desktop\\New folder\\backup1",
             "keepBackupsCount": 10,
-            "filesToKeep": [ "gfhdh", "hdf", "fhd" ],
-            "foldersToKeep": [ "hfd", "fdh", "hdf" ]
+            "filesToKeep": [ "docx", "xlsx" ],
+            "foldersToKeep": [ "FolderX", "FolderY" ]
         },
         "REact": {
             "sourceFolder": "C:\\Users\\Zayan Breiche\\Desktop\\New folder\\source2",
@@ -31,8 +31,8 @@
             ],
             "backupFolder": "C:\\Users\\Zayan Breiche\\Desktop\\New folder\\backup2",
             "keepBackupsCount": 10,
-            "filesToKeep": [ "gfhdh", "hdf", "fhd" ],
-            "foldersToKeep": [ "hfd", "fdh", "hdf" ]
+            "filesToKeep": [ "docx", "xlsx" ],
+            "foldersToKeep": [ "FolderX", "FolderY" ]
         }
     }
 }

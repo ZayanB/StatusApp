@@ -16,7 +16,7 @@ namespace StatusApp
     }
 
     public class AppConfigRoot
-    {   
+    {
         public Dictionary<string, ApplicationConfig> Applications { get; set; }
 
     }
@@ -30,6 +30,9 @@ namespace StatusApp
         public string backupFolder { get; set; }
 
         public int keepBackupsCount { get; set; }
+        public List<string> filesToKeep { get; set; }
+        public List<string> foldersToKeep { get; set; }
+
 
     }
 
