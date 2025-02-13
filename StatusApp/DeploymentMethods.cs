@@ -11,8 +11,6 @@ namespace StatusApp
 {
     public class DeploymentMethods
     {
-        //private DeploymentMethods deploymentMethods = new DeploymentMethods();
-
         private static readonly string BackupFolderName = "Backup";
         private static readonly string DestinationFolderName = "Destination";
         private static readonly string SourceFolderName = "Source";
@@ -43,16 +41,16 @@ namespace StatusApp
             return true;
         }
 
-        public bool CheckSourceFolder(ApplicationConfig appConfig)
+        public bool IsDirectoryEmpty(string directoryPath)
         {
-            string sourcePath = appConfig.sourceFolder;
-            if (!Directory.EnumerateFileSystemEntries(sourcePath).Any())
+            string directoryName = Path.GetFileName(directoryPath);
+      
+            if (!Directory.EnumerateFileSystemEntries(directoryPath).Any())
             {
-                MessageBox.Show($"Source Folder is Empty. Operation can't be completed.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                return false;
+                MessageBox.Show($"{directoryName} is Empty.Operation can't be completed.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                return true;
             }
-
-            return true;
+            return false;
         }
 
         public DateTime CreateBackupInstance(ApplicationConfig appConfig)
@@ -162,7 +160,6 @@ namespace StatusApp
             return backupPath;
         }
 
-        
         public void CopySourceToDestination(ApplicationConfig appConfig, Label label, ref int createdFolderCount, ref int createdFileCount)
         {
             string sourceFolder = appConfig.sourceFolder;
@@ -240,12 +237,12 @@ namespace StatusApp
             }
         }
 
-
         private void Log(string logFilePath, string logEntry)
         {
             File.AppendAllText(logFilePath, logEntry);
         }
-        public void CreateBackupSource(ApplicationConfig appConfig,DateTime backupStamp)
+
+        public void CreateBackupSource(ApplicationConfig appConfig, DateTime backupStamp)
         {
             string backupFolder = appConfig.backupFolder;
 
@@ -261,6 +258,7 @@ namespace StatusApp
             }
             BackupSource(sourceFolder, backupSubFolder);
         }
+
         private void BackupSource(string sourceFolder, string destinationFolder)
         {
             // Move all files
@@ -279,5 +277,54 @@ namespace StatusApp
                 Directory.Move(dir, destDir);
             }
         }
+
+        public void Rollback(ApplicationConfig appConfig, string backupFolder)
+        {
+            string backupFolderPath = appConfig.backupFolder;
+            string backupPath = Path.Combine(backupFolder, DestinationFolderName);
+            string backupFolderName = Path.GetFileName(backupFolder);
+            string logPath = Path.Combine(backupFolderPath, RollbackFile);
+            string rollbackDateTime = DateTime.Now.ToString("yyyy-MM-dd_HH:mm:ss");
+
+            if (!File.Exists(logPath))
+            {
+                File.WriteAllText(logPath, "ROLLBACK LOG:\n\n-----------------------------------------------------------------\n");
+            }
+            Log(logPath, $"Rollback of {backupFolderName} on {rollbackDateTime}: \n-----------------------------------------------------------------\n\n");
+
+            foreach (var destination in appConfig.destinationFolders)
+            {
+                string rollbackPath = Path.Combine(backupPath, destination.name);
+                string destPath = destination.path;
+
+                if (Directory.Exists(rollbackPath))
+                {
+                    var commonItems = CompareDirectoryPath(rollbackPath, destPath);
+                    RollBackItems(appConfig, rollbackPath, destPath, commonItems);
+                }
+            }
+            Log(logPath, $"\n-----------------------------------------------------------------\n");
+            MessageBox.Show($" Rolled backup {backupFolderName} back to {DestinationFolderName}", "Rollback Success", MessageBoxButton.OK);
+        }
+
+        private void RollBackItems(ApplicationConfig appConfig, string sourceDir, string destDir, List<string> commonFiles)
+        {
+            string logPath = Path.Combine(appConfig.backupFolder, RollbackFile);
+
+            foreach (var item in commonFiles)
+            {
+                if (Path.HasExtension(item))
+                {
+                    string sourceItemPath = Path.Combine(sourceDir, item);
+                    string destItemPath = Path.Combine(destDir, item);
+                    File.Copy(sourceItemPath, destItemPath, overwrite: true);
+                    string logEntry = $"Copied {item} from {sourceDir} to {destDir}\n";
+                    Log(logPath, $"{logEntry} \n");
+                }
+            }
+
+        }
+
+
     }
 }

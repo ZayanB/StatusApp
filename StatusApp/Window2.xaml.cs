@@ -28,6 +28,8 @@ namespace StatusApp
 
         private static readonly string BackupFolderName = "Backup";
         private static readonly string DestinationFolderName = "Destination";
+        private static readonly string RollbackFile = "Rollback Log.txt";
+
 
         private int BackupFolderCount = 0;
         private int BackupFileCount = 0;
@@ -45,17 +47,26 @@ namespace StatusApp
         public Config2 ConfigData { get; set; }
         public Window2()
         {
-            InitializeComponent();
+            try
+            {
+                InitializeComponent();
 
-            if (File.Exists(ConfigFilePath))
-            {
-                ConfigManager.LoadConfig(ConfigFilePath);
-                LoadApplicationOptions();
+                if (File.Exists(ConfigFilePath))
+                {
+                    ConfigManager.LoadConfig(ConfigFilePath);
+                    LoadApplicationOptions();
+                    IsAppLoaded = true;
+                    this.Loaded += Window2_Loaded;
+                }
+                else
+                {
+                    MessageBox.Show($"Configuration File not found at {ConfigFilePath}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    Application.Current.Shutdown();
+                }
             }
-            else
+            catch (Exception ex)
             {
-                Console.WriteLine($"Configuration File not found at {ConfigFilePath}");
-                Application.Current.Shutdown();
+                MessageBox.Show($"{ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
         private void LoadApplicationOptions()
@@ -63,15 +74,14 @@ namespace StatusApp
             var applicationOptions = ConfigManager.Config.Applications.Keys.ToList();
             applicationDropdown.ItemsSource = applicationOptions;
             applicationDropdown.SelectedIndex = 0;
-
         }
+
         private void runBtn_Click(object sender, RoutedEventArgs e)
         {
             try
             {
-                if (deploymentMethods.CheckSourceFolder(FolderPaths))
+                if (!deploymentMethods.IsDirectoryEmpty(FolderPaths.sourceFolder))
                 {
-
                     DateTime timestamp = deploymentMethods.CreateBackupInstance(FolderPaths);
 
                     BackupDestination(timestamp);
@@ -80,11 +90,10 @@ namespace StatusApp
 
                     deploymentMethods.CopySourceToDestination(FolderPaths, txtCopyCount, ref CreatedFolderCount, ref CreatedFileCount);
 
-                    deploymentMethods.CreateBackupSource(FolderPaths, timestamp);
+                    //deploymentMethods.CreateBackupSource(FolderPaths, timestamp);
 
                     BackupFolderCount = 0;
                     BackupFileCount = 0;
-                  
                     CreatedFolderCount = 0;
                     CreatedFileCount = 0;
                 }
@@ -95,9 +104,8 @@ namespace StatusApp
                 MessageBox.Show($"Failed. {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
+
         }
-
-
 
         private void BackupDestination(DateTime timestamp)
         {
@@ -183,7 +191,7 @@ namespace StatusApp
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"Error deleting {item}: {ex.Message}");
+                    MessageBox.Show($"Error deleting {item}: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
 
             }
@@ -217,15 +225,22 @@ namespace StatusApp
 
         }
 
-
         private void showRollbackBtn_Click(object sender, RoutedEventArgs e)
         {
+            rollbackPopup.IsOpen = true;
 
+            deploymentMethods.LoadBackupOptions(FolderPaths, BackupDropdown, performRollbackBtn);
         }
 
         private void performRollbackBtn_Click(object sender, RoutedEventArgs e)
         {
+            string rollbackPath = BackupDropdown.SelectedValue.ToString();
 
+            MessageBoxResult result = MessageBox.Show($"Are you sure you want to rollback backup {Path.GetFileName(rollbackPath)} back to {DestinationFolderName}?", "Confirmation", MessageBoxButton.YesNo, MessageBoxImage.Question);
+            if (result == MessageBoxResult.Yes)
+            {
+                deploymentMethods.Rollback(FolderPaths, rollbackPath);
+            }
         }
 
         private void applicationDropdown_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -246,6 +261,14 @@ namespace StatusApp
 
             if (IsAppLoaded) { deploymentMethods.CleanupBackups(FolderPaths, ApplicationChoice); }
 
+        }
+
+        private void Window2_Loaded(object sender, RoutedEventArgs e)
+        {
+            if (!SkipInitialChange)
+            {
+                deploymentMethods.CleanupBackups(FolderPaths, ApplicationChoice);
+            }
         }
     }
 }
