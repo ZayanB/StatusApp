@@ -21,11 +21,11 @@
             "sourceFolder": "C:\\Users\\Zayan Breiche\\Desktop\\New folder\\source2",
             "destinationFolders": [
                 {
-                    "name": "ServerX2",
+                    "name": "ServerX",
                     "path": "C:\\Users\\Zayan Breiche\\Desktop\\New folder\\destination2\\serverX"
                 },
                 {
-                    "name": "ServerY2",
+                    "name": "ServerY",
                     "path": "C:\\Users\\Zayan Breiche\\Desktop\\New folder\\destination2\\serverY"
                 }
             ],
