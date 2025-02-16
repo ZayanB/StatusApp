@@ -1,21 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Windows;
+﻿using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
 using System.IO;
-using System.Text.Json;
 using System.Collections.ObjectModel;
-
-
-
+using System.ComponentModel;
 
 namespace StatusApp
 {
@@ -24,14 +11,58 @@ namespace StatusApp
     /// </summary>
     /// 
 
-    public class FileSystemItem
+    public class FileSystemItem : INotifyPropertyChanged
     {
+        private bool _isSelected;
         public string Name { get; set; }
         public string Path { get; set; }
         public bool IsDirectory { get; set; }
-        public bool IsSelected { get; set; }
 
-        public ObservableCollection<FileSystemItem> LoadDirectory(string path)
+        public FileSystemItem Parent { get; set; }
+
+        public ObservableCollection<FileSystemItem> Children { get; set; } = new ObservableCollection<FileSystemItem>();
+        public bool IsSelected
+        {
+            get => _isSelected;
+
+            set
+            {
+                if (_isSelected != value)
+                {
+                    _isSelected = value;
+                    OnPropertyChanged(nameof(IsSelected));
+
+                    foreach (var child in Children)
+                    {
+                        child.IsSelected = value;
+                    }
+
+                    if (!_isSelected)
+                    {
+                        Parent?.DeselectIfAnyChildIsDeselected();
+                    }
+                }
+            }
+        }
+
+        public event PropertyChangedEventHandler PropertyChanged;
+
+        protected void OnPropertyChanged(string propertyName)
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
+
+        private void DeselectIfAnyChildIsDeselected()
+        {
+            if (Children.Any(child => !child.IsSelected))
+            {
+                _isSelected = false;
+                OnPropertyChanged(nameof(IsSelected));
+                Parent?.DeselectIfAnyChildIsDeselected();
+            }
+        }
+
+        public ObservableCollection<FileSystemItem> LoadDirectory(string path, FileSystemItem parent = null)
         {
             var items = new ObservableCollection<FileSystemItem>();
             try
@@ -45,9 +76,10 @@ namespace StatusApp
                         Path = dir,
                         IsDirectory = true,
                         IsSelected = false,
+                        Parent = parent
                     };
 
-                    dirItem.Children = LoadDirectory(dir);
+                    dirItem.Children = LoadDirectory(dir, dirItem);
                     items.Add(dirItem);
                 }
 
@@ -59,6 +91,8 @@ namespace StatusApp
                         Path = file,
                         IsDirectory = false,
                         IsSelected = false,
+                        Parent = parent
+
                     });
                 }
             }
@@ -90,21 +124,21 @@ namespace StatusApp
             return selectedItems;
         }
 
-        public List<string> GetUnwantedItems(List<FileSystemItem> selectedItems, string basePath, List<string> destinationNames)
+        public List<string> GetUnwantedItems(List<FileSystemItem> selectedItems, List<string> destinationPaths, string basePath)
         {
             var unwantedItems = new List<string>();
 
             foreach (var item in selectedItems)
             {
-                foreach (var destinationName in destinationNames)
+                foreach (var destinationPath in destinationPaths)
                 {
-                    string fullPath = System.IO.Path.Combine(basePath, destinationName, item.Name);
-                    unwantedItems.Add(fullPath);
+                    string fullPath = item.Path.Replace(basePath, destinationPath);
+                    if (File.Exists(fullPath)) { unwantedItems.Add(fullPath); }
+                    else if (Directory.Exists(fullPath)) { unwantedItems.Add(fullPath); }
                 }
             }
             return unwantedItems;
         }
-        public ObservableCollection<FileSystemItem> Children { get; set; } = new ObservableCollection<FileSystemItem>();
     }
     public partial class Window2 : Window
     {
@@ -114,7 +148,6 @@ namespace StatusApp
         private static readonly string BackupFolderName = "Backup";
         private static readonly string DestinationFolderName = "Destination";
         private static readonly string RollbackFile = "Rollback Log.txt";
-
 
         private int BackupFolderCount = 0;
         private int BackupFileCount = 0;
@@ -132,9 +165,8 @@ namespace StatusApp
         private FileSystemItem fileSystemItem = new FileSystemItem();
         private dynamic FolderPaths;
         private dynamic DirectoryItems;
-        private dynamic Unwantedtems;
+        List<string> UnwantedItems;
 
-        public Config2 ConfigData { get; set; }
         public Window2()
         {
             try
@@ -162,6 +194,7 @@ namespace StatusApp
                 MessageBox.Show($"{ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
+
         private void LoadApplicationOptions()
         {
             var applicationOptions = ConfigManager.Config.Applications.Keys.ToList();
@@ -175,11 +208,12 @@ namespace StatusApp
             {
                 if (!deploymentMethods.IsDirectoryEmpty(FolderPaths.sourceFolder))
                 {
+
                     DateTime timestamp = deploymentMethods.CreateBackupInstance(FolderPaths);
 
                     BackupDestination(timestamp);
 
-                    DeleteItems(Unwantedtems);
+                    DeleteItems(UnwantedItems);
 
                     deploymentMethods.CopySourceToDestination(FolderPaths, txtCopyCount, ref CreatedFolderCount, ref CreatedFileCount);
 
@@ -194,6 +228,10 @@ namespace StatusApp
 
                     LoadDirectoryForUI();
 
+                    if (UnwantedItems != null && UnwantedItems.Count != 0)
+                    {
+                        UnwantedItems.Clear();
+                    }
                 }
 
             }
@@ -233,80 +271,40 @@ namespace StatusApp
             string directoryPath = FolderPaths.destinationFolders[0].path;
             if (Directory.Exists(directoryPath))
             {
-                var directoryItems = fileSystemItem.LoadDirectory(directoryPath);
+                var directoryItems = fileSystemItem.LoadDirectory(directoryPath, null);
                 DirectoryTreeView.ItemsSource = directoryItems;
             }
         }
 
-        //private void KeepWantedItems()
-        //{
-        //    foreach (var destination in FolderPaths.destinationFolders)
-        //    {
-        //        string destinationPath = destination.path;
-        //        List<string> unwantedItems = GetItemsToDelete(destinationPath);
-
-        //        DeleteItems(unwantedItems);
-
-        //    }
-        //}
-
-        //private List<string> GetItemsToDelete(string directoryPath)
-        //{
-        //    List<string> unwantedItems = new List<string>();
-
-        //    List<string> filesToKeep = FolderPaths.filesToKeep;
-        //    List<string> foldersTokeep = FolderPaths.foldersToKeep;
-
-        //    var allFiles = Directory.GetFiles(directoryPath, "*", SearchOption.TopDirectoryOnly);
-
-        //    var allDirectories = Directory.GetDirectories(directoryPath, "*", SearchOption.TopDirectoryOnly);
-
-        //    foreach (var file in allFiles)
-        //    {
-        //        string fileExtension = Path.GetExtension(file).TrimStart('.').ToLower();
-        //        if (!filesToKeep.Contains(fileExtension))
-        //        {
-        //            unwantedItems.Add(file);
-        //        }
-        //    }
-
-        //    foreach (var directory in allDirectories)
-        //    {
-        //        string folderName = new DirectoryInfo(directory).Name;
-        //        if (!foldersTokeep.Contains(folderName))
-        //        {
-        //            unwantedItems.Add(directory);
-        //        }
-        //    }
-
-        //    return unwantedItems;
-        //}
-
         private void DeleteItems(List<string> itemsToDelete)
         {
-            foreach (var item in itemsToDelete)
+            if (UnwantedItems == null || UnwantedItems.Count == 0)
             {
-
-                try
+                txtDeleteCount.Content = $" No Items Deleted ";
+            }
+            else
+            {
+                foreach (var item in itemsToDelete)
                 {
-                    if (File.Exists(item))
+                    try
                     {
-                        File.Delete(item);
-                        DeletedFileCount++;
+                        if (File.Exists(item))
+                        {
+                            File.Delete(item);
+                            DeletedFileCount++;
+                        }
+                        else if (Directory.Exists(item))
+                        {
+                            Directory.Delete(item, true);
+                            DeletedFolderCount++;
+                        }
                     }
-                    else if (Directory.Exists(item))
+                    catch (Exception ex)
                     {
-                        Directory.Delete(item, true);
-                        DeletedFolderCount++;
+                        MessageBox.Show($"Error deleting {item}: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                     }
+                    txtDeleteCount.Content = $" Deleted {DeletedFolderCount} Folders & {DeletedFileCount} Files ";
                 }
-                catch (Exception ex)
-                {
-                    MessageBox.Show($"Error deleting {item}: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                }
-                txtDeleteCount.Content = $" Deleted {DeletedFolderCount} Folders & {DeletedFileCount} Files ";
-
-
             }
         }
 
@@ -366,7 +364,7 @@ namespace StatusApp
             deploymentMethods.ClearLabels(txtCopyCount, txtBackupCount, txtDeleteCount);
             SourceFolderLabel.Content = FolderPaths.sourceFolder;
             BackupFolderLabel.Content = FolderPaths.backupFolder;
-        
+
             LoadDirectoryForUI();
 
 
@@ -376,7 +374,6 @@ namespace StatusApp
             if (IsAppLoaded) { deploymentMethods.CleanupBackups(FolderPaths, ApplicationChoice); }
 
         }
-
 
         private void Window2_Loaded(object sender, RoutedEventArgs e)
         {
@@ -388,19 +385,21 @@ namespace StatusApp
 
         private void CheckBox_Checked(object sender, RoutedEventArgs e)
         {
-            string basePath = Path.GetDirectoryName(FolderPaths.destinationFolders[0].path);
+            string basePath = FolderPaths.destinationFolders[0].path;
 
-            List<string> destinationNames = new List<string>();
+            List<string> destinationPaths = new List<string>();
+
             foreach (var dest in FolderPaths.destinationFolders)
             {
-                string destinationName = dest.name;
-                destinationNames.Add(destinationName);
+                string destinationPath = dest.path;
+                destinationPaths.Add(destinationPath);
             }
 
             var selectedItems = fileSystemItem.GetSelectedItems(DirectoryTreeView.ItemsSource as ObservableCollection<FileSystemItem>);
 
-            Unwantedtems = fileSystemItem.GetUnwantedItems(selectedItems, basePath, destinationNames);
+            UnwantedItems = fileSystemItem.GetUnwantedItems(selectedItems, destinationPaths, basePath);
 
         }
+
     }
 }

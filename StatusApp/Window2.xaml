@@ -5,7 +5,9 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:StatusApp"
         mc:Ignorable="d"
-        Title="Window2" Height="450" Width="800">
+        Title="Window2" Height="450" Width="800"
+        Icon="pack://application:,,,/logoIcon.ico">
+
     <Grid Background="#00a99d">
         <Grid.RowDefinitions>
             <RowDefinition  Height="10*"/>
@@ -27,7 +29,6 @@
                     <ColumnDefinition/>
                 </Grid.ColumnDefinitions>
                 <Label VerticalAlignment="Center" HorizontalAlignment="Center" Content="Window2" FontFamily="Montserrat, Helvetica, Arial, Verdana, sans-serif"  Background="#00a99d" />
-                <Label Grid.Column="1" VerticalAlignment="Center" HorizontalAlignment="Left" Content="Deployment" FontFamily="Montserrat, Helvetica, Arial, Verdana, sans-serif" Margin="10,0,0,0" />
             </Grid>
 
 
@@ -65,12 +66,13 @@
                     <TreeView.ItemTemplate>
                         <HierarchicalDataTemplate ItemsSource="{Binding Children}">
                             <StackPanel Orientation="Horizontal">
-                                <CheckBox IsChecked="{Binding IsSelected}" VerticalAlignment="Center" Checked="CheckBox_Checked"/>
+                                <CheckBox IsChecked="{Binding IsSelected,Mode=TwoWay}" VerticalAlignment="Center" Checked="CheckBox_Checked"/>
                                 <TextBlock Text="{Binding Name}" Margin="5,0"/>
                             </StackPanel>
                         </HierarchicalDataTemplate>
                     </TreeView.ItemTemplate>
                 </TreeView>
+
 
                 <Grid Grid.Row="3" RenderTransformOrigin="1.058,0.421" Grid.ColumnSpan="2" Margin="-15,0,57,0">
                     <Grid.ColumnDefinitions>

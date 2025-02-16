@@ -1,6 +1,6 @@
 {
     "Applications": {
-        "Angular": {
+        "Frontend": {
             "sourceFolder": "C:\\Users\\Zayan Breiche\\Desktop\\New folder\\source1",
             "destinationFolders": [
                 {
@@ -17,7 +17,7 @@
             "filesToKeep": [ "docx", "xlsx" ],
             "foldersToKeep": [ "FolderX", "FolderY" ]
         },
-        "REact": {
+        "Backend": {
             "sourceFolder": "C:\\Users\\Zayan Breiche\\Desktop\\New folder\\source2",
             "destinationFolders": [
                 {
