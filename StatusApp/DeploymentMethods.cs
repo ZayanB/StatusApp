@@ -169,29 +169,36 @@ namespace StatusApp
         {
             string sourceFolder = appConfig.sourceFolder;
 
+            bool isFirstIteration = true;
+
             foreach (var destination in appConfig.destinationFolders)
             {
                 string destinationPath = destination.path;
 
-                CopyDirectory(sourceFolder, destinationPath, label, ref createdFolderCount, ref createdFileCount);
+                CopyDirectory(sourceFolder, destinationPath, label, ref createdFolderCount, ref createdFileCount, isFirstIteration);
+
+                isFirstIteration = false;
 
             }
         }
 
-        public void CopyDirectory(string originDir, string targetDir, Label label, ref int folderCount, ref int fileCount)
+        public void CopyDirectory(string originDir, string targetDir, Label label, ref int folderCount, ref int fileCount, bool isFirstIteration)
         {
 
             if (!Directory.Exists(targetDir))
             {
                 Directory.CreateDirectory(targetDir);
-                folderCount++;
+                if (isFirstIteration)
+                {
+                    folderCount++;
+                }
             }
 
             foreach (string file in Directory.GetFiles(originDir))
             {
                 string fileName = Path.GetFileName(file);
                 string destFile = Path.Combine(targetDir, fileName);
-                if (!File.Exists(destFile)) { fileCount++; }
+                if (!File.Exists(destFile)) { if (isFirstIteration) { fileCount++; } }
                 File.Copy(file, destFile, true);
             }
 
@@ -202,9 +209,12 @@ namespace StatusApp
                 if (!Directory.Exists(destSubDir))
                 {
                     Directory.CreateDirectory(destSubDir);
-                    folderCount++;
+                    if (isFirstIteration)
+                    {
+                        folderCount++;
+                    }
                 }
-                CopyDirectory(subDir, destSubDir, label, ref folderCount, ref fileCount);
+                CopyDirectory(subDir, destSubDir, label, ref folderCount, ref fileCount, isFirstIteration);
             }
 
 
@@ -218,7 +228,7 @@ namespace StatusApp
         }
 
         //method that backup destination to backup folders and update counts
-        public void BackupFiles(string sourceDir, string destDir, string item, string backupLogFile, ref int backupFolderCount, ref int backupFileCount)
+        public void BackupFiles(string sourceDir, string destDir, string item, string backupLogFile, ref int backupFolderCount, ref int backupFileCount, bool isFirstIteration)
         {
             string sourcePath = Path.Combine(sourceDir, item);
 
@@ -231,7 +241,10 @@ namespace StatusApp
                     Directory.CreateDirectory(destPath);
                     string logEntry = $"Backed up Folder {item} from {sourceDir} to {destDir} \n\n";
                     Log(backupLogFile, logEntry);
-                    backupFolderCount++;
+                    if (isFirstIteration)
+                    {
+                        backupFolderCount++;
+                    }
                 }
             }
             else if (File.Exists(sourcePath))
@@ -239,7 +252,10 @@ namespace StatusApp
                 File.Copy(sourcePath, destPath, overwrite: true);
                 string logEntry = $"Backed up File {item} from {sourceDir} to {destDir} \n\n";
                 Log(backupLogFile, logEntry);
-                backupFileCount++;
+                if (isFirstIteration)
+                {
+                    backupFileCount++;
+                }
             }
         }
 

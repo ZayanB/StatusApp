@@ -164,8 +164,10 @@ namespace StatusApp
         private DeploymentMethods deploymentMethods = new DeploymentMethods();
         private FileSystemItem fileSystemItem = new FileSystemItem();
         private ConfigManager configManager = new ConfigManager();
+
         private dynamic ConfigData;
-        List<string> UnwantedItems;
+
+        List<string> DestinationUnwantedItems;
 
         public Window2()
         {
@@ -180,6 +182,7 @@ namespace StatusApp
                     LoadApplicationOptions();
                     IsAppLoaded = true;
                     this.Loaded += Window2_Loaded;
+                    //deploymentMethods.CleanupBackups(ConfigData, ApplicationChoice);
 
                     LoadDirectoryForUI();
 
@@ -214,11 +217,11 @@ namespace StatusApp
 
                     BackupDestination(timestamp);
 
-                    DeleteItems(UnwantedItems);
+                    DeleteItems(DestinationUnwantedItems);
 
                     deploymentMethods.CopySourceToDestination(ConfigData, txtCopyCount, ref CreatedFolderCount, ref CreatedFileCount);
 
-                    deploymentMethods.CreateBackupSource(ConfigData, timestamp); //Comment to not empty source
+                    //deploymentMethods.CreateBackupSource(ConfigData, timestamp); //Comment to not empty source
 
                     BackupFolderCount = 0;
                     BackupFileCount = 0;
@@ -229,9 +232,9 @@ namespace StatusApp
 
                     LoadDirectoryForUI();
 
-                    if (UnwantedItems != null && UnwantedItems.Count != 0)
+                    if (DestinationUnwantedItems != null && DestinationUnwantedItems.Count != 0)
                     {
-                        UnwantedItems.Clear();
+                        DestinationUnwantedItems.Clear();
                     }
                 }
 
@@ -250,6 +253,8 @@ namespace StatusApp
 
             string destinationBackupFolder = Path.Combine(backupPath, DestinationFolderName);
 
+            bool isFirstIteration = true;
+
             foreach (var destination in ConfigData.destinationFolders)
             {
                 string destinationPath = destination.path;
@@ -258,13 +263,48 @@ namespace StatusApp
                 {
                     Directory.CreateDirectory(destinationBackupFolder);
                 }
+
                 string specificBackupFolder = Path.Combine(destinationBackupFolder, destination.name);
+
                 if (!Directory.Exists(specificBackupFolder))
                 {
                     Directory.CreateDirectory(specificBackupFolder);
                 }
-                BackupAllItems(destinationPath, specificBackupFolder, timestamp);
+
+                BackupAllItems(destinationPath, specificBackupFolder, timestamp, isFirstIteration);
+                isFirstIteration = false;
+
             }
+        }
+
+        private void BackupAllItems(string sourceDir, string destDir, DateTime backupStamp, bool isFirstIteration)
+        {
+            string backupPath = deploymentMethods.GetBackupPath(ConfigData, backupStamp);
+
+            string backupDateTime = "Backup " + backupStamp.ToString("yyyy-MM-dd_HH:mm:ss");
+
+            string backupLogFile = Path.Combine(backupPath, "Backup Log.txt");
+
+            if (!File.Exists(backupLogFile))
+            {
+                File.WriteAllText(backupLogFile, $"{backupDateTime} Log: \n------------------------------------------------------------------------------------------------------------------\n\n");
+            }
+
+            List<string> allDestinationItems = new List<string>();
+
+            foreach (var destination in ConfigData.destinationFolders)
+            {
+                string destinationPath = destination.path;
+
+                allDestinationItems = Directory.EnumerateFileSystemEntries(destinationPath, "*", SearchOption.AllDirectories).Select(path => Path.GetRelativePath(destinationPath, path)).ToList();
+            }
+            foreach (var item in allDestinationItems)
+            {
+                deploymentMethods.BackupFiles(sourceDir, destDir, item, backupLogFile, ref BackupFolderCount, ref BackupFileCount, isFirstIteration);
+            }
+
+            txtBackupCount.Content = $" Backed Up {BackupFolderCount} Folders & {BackupFileCount} Files ";
+
         }
 
         private void LoadDirectoryForUI()
@@ -279,12 +319,14 @@ namespace StatusApp
 
         private void DeleteItems(List<string> itemsToDelete)
         {
-            if (UnwantedItems == null || UnwantedItems.Count == 0)
+            if (DestinationUnwantedItems == null || DestinationUnwantedItems.Count == 0)
             {
                 txtDeleteCount.Content = $" No Items Deleted ";
             }
             else
             {
+                bool isFirstIteration = true;
+
                 foreach (var item in itemsToDelete)
                 {
                     try
@@ -292,13 +334,14 @@ namespace StatusApp
                         if (File.Exists(item))
                         {
                             File.Delete(item);
-                            DeletedFileCount++;
+                            if (isFirstIteration) { DeletedFileCount++; }
                         }
                         else if (Directory.Exists(item))
                         {
                             Directory.Delete(item, true);
-                            DeletedFolderCount++;
+                            if (isFirstIteration) { DeletedFolderCount++; }
                         }
+                        isFirstIteration = false;
                     }
                     catch (Exception ex)
                     {
@@ -307,34 +350,6 @@ namespace StatusApp
                     txtDeleteCount.Content = $" Deleted {DeletedFolderCount} Folders & {DeletedFileCount} Files ";
                 }
             }
-        }
-
-        private void BackupAllItems(string sourceDir, string destDir, DateTime backupStamp)
-        {
-            string backupPath = deploymentMethods.GetBackupPath(ConfigData, backupStamp);
-
-            string backupDateTime = "Backup " + backupStamp.ToString("yyyy-MM-dd_HH:mm:ss");
-
-            string backupLogFile = Path.Combine(backupPath, "Backup Log.txt");
-
-            if (!File.Exists(backupLogFile))
-            {
-                File.WriteAllText(backupLogFile, $"{backupDateTime} Log: \n------------------------------------------------------------------------------------------------------------------\n\n");
-            }
-
-            foreach (var destination in ConfigData.destinationFolders)
-            {
-                string destinationPath = destination.path;
-
-                List<string> allDestinationItems = Directory.EnumerateFileSystemEntries(destinationPath, "*", SearchOption.AllDirectories).Select(path => Path.GetRelativePath(destinationPath, path)).ToList();
-
-                foreach (var item in allDestinationItems)
-                {
-                    deploymentMethods.BackupFiles(sourceDir, destDir, item, backupLogFile, ref BackupFolderCount, ref BackupFileCount);
-                }
-            }
-            txtBackupCount.Content = $" Backed Up {BackupFolderCount} Folders & {BackupFileCount} Files ";
-
         }
 
         private void showRollbackBtn_Click(object sender, RoutedEventArgs e)
@@ -375,7 +390,7 @@ namespace StatusApp
             if (IsAppLoaded) { deploymentMethods.CleanupBackups(ConfigData, ApplicationChoice); }
         }
 
-        private void Window2_Loaded(object sender, RoutedEventArgs e)
+        public void Window2_Loaded(object sender, RoutedEventArgs e)
         {
             if (!SkipInitialChange)
             {
@@ -397,7 +412,7 @@ namespace StatusApp
 
             var selectedItems = fileSystemItem.GetSelectedItems(DirectoryTreeView.ItemsSource as ObservableCollection<FileSystemItem>);
 
-            UnwantedItems = fileSystemItem.GetUnwantedItems(selectedItems, destinationPaths, basePath);
+            DestinationUnwantedItems = fileSystemItem.GetUnwantedItems(selectedItems, destinationPaths, basePath);
 
         }
 
