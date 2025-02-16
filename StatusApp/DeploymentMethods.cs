@@ -40,7 +40,7 @@ namespace StatusApp
         public bool IsDirectoryEmpty(string directoryPath)
         {
             string directoryName = Path.GetFileName(directoryPath);
-      
+
             if (!Directory.EnumerateFileSystemEntries(directoryPath).Any())
             {
                 MessageBox.Show($"{directoryName} is Empty.Operation can't be completed.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
@@ -136,7 +136,7 @@ namespace StatusApp
                 {
                     Content = $"Name: {destination.name}\nPath: {destination.path}",
                     FontSize = 15,
-                    HorizontalAlignment = HorizontalAlignment.Left,
+             
                 };
                 stackPanel.Children.Add(label);
             }
