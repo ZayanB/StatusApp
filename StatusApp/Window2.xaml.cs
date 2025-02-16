@@ -364,6 +364,8 @@ namespace StatusApp
             deploymentMethods.ClearLabels(txtCopyCount, txtBackupCount, txtDeleteCount);
             SourceFolderLabel.Content = FolderPaths.sourceFolder;
             BackupFolderLabel.Content = FolderPaths.backupFolder;
+            deploymentMethods.AddDestinationLabels(FolderPaths, DestinationLabelsPanel);
+
 
             LoadDirectoryForUI();
 
