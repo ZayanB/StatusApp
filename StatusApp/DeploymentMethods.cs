@@ -12,6 +12,7 @@ namespace StatusApp
         private static readonly string SourceFolderName = "Source";
         private static readonly string RollbackFile = "Rollback Log.txt";
 
+        //method to check if directories exist at paths
         public bool CheckFolders(ApplicationConfig appConfig)
         {
             if (!Directory.Exists(appConfig.sourceFolder))
@@ -37,6 +38,7 @@ namespace StatusApp
             return true;
         }
 
+        //method to check if a directory is empty
         public bool IsDirectoryEmpty(string directoryPath)
         {
             string directoryName = Path.GetFileName(directoryPath);
@@ -49,6 +51,7 @@ namespace StatusApp
             return false;
         }
 
+        //method to create backup directory with specific date & time
         public DateTime CreateBackupInstance(ApplicationConfig appConfig)
         {
             string backupFolder = appConfig.backupFolder;
@@ -62,6 +65,7 @@ namespace StatusApp
             return currentTime;
         }
 
+        //method that compares two directories and return the paths of common items
         public List<string> CompareDirectoryPath(string path1, string path2)
         {
             List<string> itemsInPath1 = Directory.EnumerateFileSystemEntries(path1, "*", SearchOption.AllDirectories).Select(path => Path.GetRelativePath(path1, path)).ToList();
@@ -73,6 +77,7 @@ namespace StatusApp
             return commonItems;
         }
 
+        //method that loads backup folders to the rollback combobox
         public void LoadBackupOptions(ApplicationConfig appConfig, ComboBox comboBox, Button btn)
         {
             var backups = Directory.GetDirectories(appConfig.backupFolder)
@@ -95,6 +100,7 @@ namespace StatusApp
 
         }
 
+        //method that perfom backup directory clean up
         public void CleanupBackups(ApplicationConfig appConfig, string applicationType)
         {
             string backupFolderPath = appConfig.backupFolder;
@@ -126,6 +132,7 @@ namespace StatusApp
 
         }
 
+        //method that adds labels for destinations on the UI
         public void AddDestinationLabels(ApplicationConfig appConfig, StackPanel stackPanel)
         {
             stackPanel.Children.Clear();
@@ -136,12 +143,12 @@ namespace StatusApp
                 {
                     Content = $"Name: {destination.name}\nPath: {destination.path}",
                     FontSize = 15,
-             
                 };
                 stackPanel.Children.Add(label);
             }
         }
 
+        //method that clears labels on UI
         public void ClearLabels(Label txtCopyCount, Label txtBackupCount, Label txtReplacedCount)
         {
             txtCopyCount.Content = string.Empty;
@@ -149,13 +156,15 @@ namespace StatusApp
             txtReplacedCount.Content = string.Empty;
         }
 
-        public string GetBackupName(ApplicationConfig appConfig, DateTime backupStamp)
+        //methods that returns the path of specific backup
+        public string GetBackupPath(ApplicationConfig appConfig, DateTime backupStamp)
         {
             string backupFolderPath = appConfig.backupFolder;
             string backupPath = Path.Combine(backupFolderPath, BackupFolderName + backupStamp.ToString("_yyyy-MM-dd_HH-mm-ss"));
             return backupPath;
         }
 
+        //methods that copy source to destination and update counts
         public void CopySourceToDestination(ApplicationConfig appConfig, Label label, ref int createdFolderCount, ref int createdFileCount)
         {
             string sourceFolder = appConfig.sourceFolder;
@@ -208,6 +217,7 @@ namespace StatusApp
 
         }
 
+        //method that backup destination to backup folders and update counts
         public void BackupFiles(string sourceDir, string destDir, string item, string backupLogFile, ref int backupFolderCount, ref int backupFileCount)
         {
             string sourcePath = Path.Combine(sourceDir, item);
@@ -233,16 +243,18 @@ namespace StatusApp
             }
         }
 
+        //method that appends text to log files
         private void Log(string logFilePath, string logEntry)
         {
             File.AppendAllText(logFilePath, logEntry);
         }
 
+        //methods that backup and empty the source folder
         public void CreateBackupSource(ApplicationConfig appConfig, DateTime backupStamp)
         {
             string backupFolder = appConfig.backupFolder;
 
-            string backupPath = GetBackupName(appConfig, backupStamp);
+            string backupPath = GetBackupPath(appConfig, backupStamp);
 
             string sourceFolder = appConfig.sourceFolder;
 
@@ -274,6 +286,7 @@ namespace StatusApp
             }
         }
 
+        //methods that rollback backups to destination folders
         public void Rollback(ApplicationConfig appConfig, string backupFolder)
         {
             string backupFolderPath = appConfig.backupFolder;
