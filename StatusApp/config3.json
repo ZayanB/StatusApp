@@ -1,0 +1,41 @@
+{
+  "Applications": {
+    "frontend": {
+      "sourceFolder": "C:\\Users\\Zayan\\Desktop\\SafeCopy\\Source",
+
+      "destinationFolders": [
+        {
+          "name": "ServerX",
+          "path": "C:\\Users\\Zayan\\Desktop\\SafeCopy\\Destination\\ServerX"
+        },
+        {
+          "name": "ServerY",
+          "path": "C:\\Users\\Zayan\\Desktop\\SafeCopy\\Destination\\ServerY"
+        },
+        {
+          "name": "ServerZ",
+          "path": "C:\\Users\\Zayan\\Desktop\\SafeCopy\\Destination\\ServerZ"
+        }
+
+      ],
+      "backupFolder": "C:\\Users\\Zayan\\Desktop\\SafeCopy\\Backup",
+      "keepBackupsCount": 10
+    },
+
+    "backend": {
+      "sourceFolder": "C:\\Users\\Zayan\\Desktop\\SafeCopy2\\Source",
+      "destinationFolders": [
+        {
+          "name": "x",
+          "path": "C:\\Users\\Zayan\\Desktop\\SafeCopy2\\Destination\\ServerX"
+        },
+        {
+          "name": "x",
+          "path": "C:\\Users\\Zayan\\Desktop\\SafeCopy2\\Destination\\ServerY"
+        }
+      ],
+      "backupFolder": "C:\\Users\\Zayan\\Desktop\\SafeCopy2\\Backup",
+      "keepBackupsCount": 10
+    }
+  }
+}

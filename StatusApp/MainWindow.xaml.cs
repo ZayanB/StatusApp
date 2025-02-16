@@ -25,6 +25,7 @@ namespace StatusApp
 
         private static readonly string AppDirectory = AppDomain.CurrentDomain.BaseDirectory;
         private static readonly string ConfigFilePath = Path.Combine(AppDirectory, "config.json");
+        //private static readonly string ConfigFilePath = Path.Combine(AppDirectory, "config3.json");
 
         private static string ApplicationChoice;
 
@@ -34,6 +35,8 @@ namespace StatusApp
         private ConfigManager configManager = new ConfigManager();
         private dynamic ConfigData;
         private Window2 window2 = new Window2();
+
+        public static bool isTabClicked { get; set; }
 
 
         public MainWindow()
@@ -54,6 +57,8 @@ namespace StatusApp
                     IsAppLoaded = true;
 
                     this.Loaded += MainWindow_Loaded;
+
+                    isTabClicked = false;
                 }
                 else
                 {
@@ -222,20 +227,14 @@ namespace StatusApp
             }
         }
 
-        private void Label_MouseDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
-        {
-            Window2 secondWindow = new Window2();
-            secondWindow.Show();
-        }
-
         private void TabControl_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             if (e.Source is TabControl tabControl && tabControl.SelectedItem is TabItem selectedTab)
             {
                 if (selectedTab.Header.ToString() == "Deployment With Delete")
                 {
-                    // Execute the method that should run when Window2 is loaded
-                    //window2.Window2_Loaded();
+                    window2.PerformCleanUpForDeployDelete();
+                    isTabClicked = true;
                 }
             }
         }

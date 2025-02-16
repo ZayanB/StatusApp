@@ -30,9 +30,8 @@
                                 <ColumnDefinition />
                                 <ColumnDefinition/>
                             </Grid.ColumnDefinitions>
-                            <Rectangle Fill="Beige"  Width="100"/>
-                            <Label VerticalAlignment="Center" HorizontalAlignment="Center" Content="Deployment"  Cursor="Hand"  Width="80" FontFamily="Montserrat, Helvetica, Arial, Verdana, sans-serif"/>
-                            <Label  Content="Deploy (with delete)" HorizontalAlignment="Left"  VerticalAlignment="Center" Grid.Column="1"  Cursor="Hand" MouseDown="Label_MouseDown" FontFamily="Montserrat, Helvetica, Arial, Verdana, sans-serif"  />
+                            <Rectangle Fill="Beige"/>
+                            <Label VerticalAlignment="Center" HorizontalAlignment="Center" Content="Deployment" FontFamily="Montserrat, Helvetica, Arial, Verdana, sans-serif" Background="Beige"/>
 
                         </Grid>
                         <Label Grid.Column="1" Content="SafeCopy" FontFamily="Montserrat, Helvetica, Arial, Verdana, sans-serif" FontSize="18" HorizontalAlignment="Center" VerticalAlignment="Center"/>

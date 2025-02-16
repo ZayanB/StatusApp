@@ -144,6 +144,7 @@ namespace StatusApp
     {
         private static readonly string AppDirectory = AppDomain.CurrentDomain.BaseDirectory;
         private static readonly string ConfigFilePath = Path.Combine(AppDirectory, "config2.json");
+        //private static readonly string ConfigFilePath = Path.Combine(AppDirectory, "config4.json");
 
         private static readonly string BackupFolderName = "Backup";
         private static readonly string DestinationFolderName = "Destination";
@@ -155,9 +156,6 @@ namespace StatusApp
         private int DeletedFileCount = 0;
         private int CreatedFileCount = 0;
         private int CreatedFolderCount = 0;
-
-        private static bool IsAppLoaded = false;
-        private static bool SkipInitialChange = true;
 
         private static string ApplicationChoice;
 
@@ -177,15 +175,10 @@ namespace StatusApp
 
                 if (File.Exists(ConfigFilePath))
                 {
-
                     configManager.LoadConfig(ConfigFilePath);
                     LoadApplicationOptions();
-                    IsAppLoaded = true;
-                    this.Loaded += Window2_Loaded;
-                    //deploymentMethods.CleanupBackups(ConfigData, ApplicationChoice);
-
+                    
                     LoadDirectoryForUI();
-
                 }
                 else
                 {
@@ -373,7 +366,6 @@ namespace StatusApp
         private void applicationDropdown_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             ApplicationChoice = applicationDropdown.SelectedItem.ToString();
-            SkipInitialChange = false;
 
             ConfigData = configManager.Config.Applications[ApplicationChoice];
 
@@ -387,15 +379,13 @@ namespace StatusApp
             bool checkFolders = deploymentMethods.CheckFolders(ConfigData);
             if (!checkFolders) { Application.Current.Shutdown(); }
 
-            if (IsAppLoaded) { deploymentMethods.CleanupBackups(ConfigData, ApplicationChoice); }
+            if (MainWindow.isTabClicked) { PerformCleanUpForDeployDelete(); }
+
         }
 
-        public void Window2_Loaded(object sender, RoutedEventArgs e)
+        public void PerformCleanUpForDeployDelete()
         {
-            if (!SkipInitialChange)
-            {
-                deploymentMethods.CleanupBackups(ConfigData, ApplicationChoice);
-            }
+            deploymentMethods.CleanupBackups(ConfigData, ApplicationChoice);
         }
 
         private void CheckBox_Checked(object sender, RoutedEventArgs e)

@@ -23,6 +23,12 @@
     <None Update="config2.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+    <None Update="config3.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="config4.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Update="tempConfig.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>

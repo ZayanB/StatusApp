@@ -1,0 +1,38 @@
+{
+  "Applications": {
+    "Frontend": {
+      "sourceFolder": "C:\\Users\\Zayan\\Desktop\\SafeCopy3\\Source",
+      "destinationFolders": [
+        {
+          "name": "ServerX",
+          "path": "C:\\Users\\Zayan\\Desktop\\SafeCopy3\\Destination\\ServerX"
+        },
+        {
+          "name": "ServerY",
+          "path": "C:\\Users\\Zayan\\Desktop\\SafeCopy3\\Destination\\ServerY"
+        }
+      ],
+      "backupFolder": "C:\\Users\\Zayan\\Desktop\\SafeCopy3\\Backup",
+      "keepBackupsCount": 10,
+      "filesToKeep": [ "docx", "xlsx" ],
+      "foldersToKeep": [ "FolderX", "FolderY" ]
+    },
+    "Backend": {
+      "sourceFolder": "C:\\Users\\Zayan\\Desktop\\SafeCopy3\\Source 1",
+      "destinationFolders": [
+        {
+          "name": "ServerX",
+          "path": "C:\\Users\\Zayan\\Desktop\\SafeCopy3\\Destination1\\ServerX"
+        },
+        {
+          "name": "ServerY",
+          "path": "C:\\Users\\Zayan\\Desktop\\SafeCopy3\\Destination1\\ServerY"
+        }
+      ],
+      "backupFolder": "C:\\Users\\Zayan\\Desktop\\SafeCopy3\\Backup1",
+      "keepBackupsCount": 10,
+      "filesToKeep": [ "docx", "xlsx" ],
+      "foldersToKeep": [ "FolderX", "FolderY" ]
+    }
+  }
+}
