@@ -33,6 +33,7 @@ namespace StatusApp
         private DeploymentMethods deploymentMethods = new DeploymentMethods();
         private ConfigManager configManager = new ConfigManager();
         private dynamic ConfigData;
+        private Window2 window2 = new Window2();
 
 
         public MainWindow()
@@ -40,6 +41,9 @@ namespace StatusApp
             try
             {
                 InitializeComponent();
+
+                var deploymentWithDeleteWindow = new Window2();
+                DeploymentWithDeleteFrame.Content = deploymentWithDeleteWindow.Content;
 
                 if (File.Exists(ConfigFilePath))
                 {
@@ -104,7 +108,7 @@ namespace StatusApp
 
                     deploymentMethods.CopySourceToDestination(ConfigData, txtCopyCount, ref CreatedFolderCount, ref CreatedFileCount);
 
-                    deploymentMethods.CreateBackupSource(ConfigData, timestamp); //Comment to not empty source
+                    //deploymentMethods.CreateBackupSource(ConfigData, timestamp); //Comment to not empty source
 
                     BackupFolderCount = 0;
                     BackupFileCount = 0;
@@ -130,9 +134,9 @@ namespace StatusApp
 
             string destinationBackupFolder = Path.Combine(backupPath, DestinationFolderName);
 
-            //Compare source with all destinations to check for common files
-
             string sourcePath = ConfigData.sourceFolder;
+
+            bool isFirstIteration = true;
 
             foreach (var destination in ConfigData.destinationFolders)
             {
@@ -151,7 +155,9 @@ namespace StatusApp
                     {
                         Directory.CreateDirectory(specificBackupFolder);
                     }
-                    BackupItems(destinationPath, specificBackupFolder, commonFiles, backupStamp);
+                    BackupItems(destinationPath, specificBackupFolder, commonFiles, backupStamp, isFirstIteration);
+
+                    isFirstIteration = false;
                 }
                 else
                 {
@@ -162,7 +168,7 @@ namespace StatusApp
 
         }
 
-        private void BackupItems(string sourceDir, string destDir, List<string> commonFiles, DateTime backupStamp)
+        private void BackupItems(string sourceDir, string destDir, List<string> commonFiles, DateTime backupStamp, bool isFirstIteration)
         {
             string backupPath = deploymentMethods.GetBackupPath(ConfigData, backupStamp);
 
@@ -170,13 +176,15 @@ namespace StatusApp
 
             string backupLogFile = Path.Combine(backupPath, "Backup Log.txt");
 
+
             if (!File.Exists(backupLogFile))
             {
                 File.WriteAllText(backupLogFile, $"{backupDateTime} Log: \n------------------------------------------------------------------------------------------------------------------\n\n");
             }
             foreach (var item in commonFiles)
             {
-                deploymentMethods.BackupFiles(sourceDir, destDir, item, backupLogFile, ref BackupFolderCount, ref BackupFileCount);
+                deploymentMethods.BackupFiles(sourceDir, destDir, item, backupLogFile, ref BackupFolderCount, ref BackupFileCount, isFirstIteration);
+
             }
             ReplacedFileCount = BackupFileCount;
             ReplacedFolderCount = BackupFolderCount;
@@ -218,6 +226,18 @@ namespace StatusApp
         {
             Window2 secondWindow = new Window2();
             secondWindow.Show();
+        }
+
+        private void TabControl_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (e.Source is TabControl tabControl && tabControl.SelectedItem is TabItem selectedTab)
+            {
+                if (selectedTab.Header.ToString() == "Deployment With Delete")
+                {
+                    // Execute the method that should run when Window2 is loaded
+                    //window2.Window2_Loaded();
+                }
+            }
         }
     }
 }
