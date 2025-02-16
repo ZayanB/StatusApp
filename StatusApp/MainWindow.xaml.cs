@@ -15,8 +15,8 @@ namespace StatusApp
         private int BackupFileCount = 0;
         private int ReplacedFolderCount = 0;
         private int ReplacedFileCount = 0;
-        public int CreatedFileCount = 0;
-        public int CreatedFolderCount = 0;
+        private int CreatedFileCount = 0;
+        private int CreatedFolderCount = 0;
 
         private static readonly string BackupFolderName = "Backup";
         private static readonly string DestinationFolderName = "Destination";
@@ -31,7 +31,8 @@ namespace StatusApp
         private static bool IsAppLoaded = false;
         private static bool SkipInitialChange = true;
         private DeploymentMethods deploymentMethods = new DeploymentMethods();
-        private dynamic FolderPaths;
+        private ConfigManager configManager = new ConfigManager();
+        private dynamic ConfigData;
 
 
         public MainWindow()
@@ -42,7 +43,7 @@ namespace StatusApp
 
                 if (File.Exists(ConfigFilePath))
                 {
-                    ConfigManager.LoadConfig(ConfigFilePath);
+                    configManager.LoadConfig(ConfigFilePath);
 
                     LoadApplicationOptions();
 
@@ -66,7 +67,7 @@ namespace StatusApp
         //method to load applications to dropdown
         private void LoadApplicationOptions()
         {
-            var applicationOptions = ConfigManager.Config.Applications.Keys.ToList();
+            var applicationOptions = configManager.Config.Applications.Keys.ToList();
             applicationDropdown.ItemsSource = applicationOptions;
             applicationDropdown.SelectedIndex = 0;
         }
@@ -77,34 +78,33 @@ namespace StatusApp
             ApplicationChoice = applicationDropdown.SelectedItem.ToString();
             SkipInitialChange = false;
 
-            FolderPaths = ConfigManager.Config.Applications[ApplicationChoice];
+            ConfigData = configManager.Config.Applications[ApplicationChoice];
 
             deploymentMethods.ClearLabels(txtCopyCount, txtBackupCount, txtReplacedCount);
-            SourceFolderLabel.Content = FolderPaths.sourceFolder;
-            BackupFolderLabel.Content = FolderPaths.backupFolder;
-            deploymentMethods.AddDestinationLabels(FolderPaths, DestinationLabelsPanel);
+            SourceFolderLabel.Content = ConfigData.sourceFolder;
+            BackupFolderLabel.Content = ConfigData.backupFolder;
+            deploymentMethods.AddDestinationLabels(ConfigData, DestinationLabelsPanel);
 
 
-            bool checkFolders = deploymentMethods.CheckFolders(FolderPaths);
+            bool checkFolders = deploymentMethods.CheckFolders(ConfigData);
             if (!checkFolders) { Application.Current.Shutdown(); }
 
-            if (IsAppLoaded) { deploymentMethods.CleanupBackups(FolderPaths, ApplicationChoice); }
+            if (IsAppLoaded) { deploymentMethods.CleanupBackups(ConfigData, ApplicationChoice); }
         }
 
         private void runBtn_Click(object sender, RoutedEventArgs e)
         {
             try
             {
-                //if (deploymentMethods.CheckSourceFolder(FolderPaths))
-                if (!deploymentMethods.IsDirectoryEmpty(FolderPaths.sourceFolder))
+                if (!deploymentMethods.IsDirectoryEmpty(ConfigData.sourceFolder))
                 {
-                    DateTime timestamp = deploymentMethods.CreateBackupInstance(FolderPaths);
+                    DateTime timestamp = deploymentMethods.CreateBackupInstance(ConfigData);
 
                     BackupDestination(timestamp);
 
-                    deploymentMethods.CopySourceToDestination(FolderPaths, txtCopyCount, ref CreatedFolderCount, ref CreatedFileCount);
+                    deploymentMethods.CopySourceToDestination(ConfigData, txtCopyCount, ref CreatedFolderCount, ref CreatedFileCount);
 
-                    deploymentMethods.CreateBackupSource(FolderPaths, timestamp);
+                    deploymentMethods.CreateBackupSource(ConfigData, timestamp); //Comment to not empty source
 
                     BackupFolderCount = 0;
                     BackupFileCount = 0;
@@ -126,15 +126,15 @@ namespace StatusApp
         //methods to backup destination if same as source & create backup log
         private void BackupDestination(DateTime backupStamp)
         {
-            string backupPath = deploymentMethods.GetBackupName(FolderPaths, backupStamp);
+            string backupPath = deploymentMethods.GetBackupPath(ConfigData, backupStamp);
 
             string destinationBackupFolder = Path.Combine(backupPath, DestinationFolderName);
 
             //Compare source with all destinations to check for common files
 
-            string sourcePath = FolderPaths.sourceFolder;
+            string sourcePath = ConfigData.sourceFolder;
 
-            foreach (var destination in FolderPaths.destinationFolders)
+            foreach (var destination in ConfigData.destinationFolders)
             {
                 string destinationPath = destination.path;
 
@@ -164,7 +164,7 @@ namespace StatusApp
 
         private void BackupItems(string sourceDir, string destDir, List<string> commonFiles, DateTime backupStamp)
         {
-            string backupPath = deploymentMethods.GetBackupName(FolderPaths, backupStamp);
+            string backupPath = deploymentMethods.GetBackupPath(ConfigData, backupStamp);
 
             string backupDateTime = "Backup " + backupStamp.ToString("yyyy-MM-dd_HH:mm:ss");
 
@@ -192,7 +192,7 @@ namespace StatusApp
             MessageBoxResult result = MessageBox.Show($"Are you sure you want to rollback backup {Path.GetFileName(rollbackPath)} back to {DestinationFolderName}?", "Confirmation", MessageBoxButton.YesNo, MessageBoxImage.Question);
             if (result == MessageBoxResult.Yes)
             {
-                deploymentMethods.Rollback(FolderPaths, rollbackPath);
+                deploymentMethods.Rollback(ConfigData, rollbackPath);
             }
 
         }
@@ -203,14 +203,14 @@ namespace StatusApp
         {
             rollbackPopup.IsOpen = true;
 
-            deploymentMethods.LoadBackupOptions(FolderPaths, BackupDropdown, rollbackBtn);
+            deploymentMethods.LoadBackupOptions(ConfigData, BackupDropdown, rollbackBtn);
         }
 
         private void MainWindow_Loaded(object sender, RoutedEventArgs e)
         {
             if (!SkipInitialChange)
             {
-                deploymentMethods.CleanupBackups(FolderPaths, ApplicationChoice);
+                deploymentMethods.CleanupBackups(ConfigData, ApplicationChoice);
             }
         }
 

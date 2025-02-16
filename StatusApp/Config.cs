@@ -32,9 +32,9 @@ namespace StatusApp
 
     public class ConfigManager
     {
-        public static AppConfigRoot Config { get; set; }
+        public AppConfigRoot Config { get; private set; }
 
-        public static void LoadConfig(string filePath)
+        public void LoadConfig(string filePath)
         {
             string jsonString = File.ReadAllText(filePath);
 
