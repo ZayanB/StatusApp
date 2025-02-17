@@ -13,14 +13,15 @@ namespace StatusApp
 
     public class FileSystemItem : INotifyPropertyChanged
     {
-        private bool _isSelected;
         public string Name { get; set; }
         public string Path { get; set; }
         public bool IsDirectory { get; set; }
 
-        public FileSystemItem Parent { get; set; }
+        public FileSystemItem Parent { get; set; } //to reference parent folder
 
-        public ObservableCollection<FileSystemItem> Children { get; set; } = new ObservableCollection<FileSystemItem>();
+        public ObservableCollection<FileSystemItem> Children { get; set; } = new ObservableCollection<FileSystemItem>(); //collection of sub files
+
+        private bool _isSelected;
         public bool IsSelected
         {
             get => _isSelected;
@@ -71,7 +72,6 @@ namespace StatusApp
                 {
                     var dirItem = new FileSystemItem
                     {
-
                         Name = System.IO.Path.GetFileName(dir),
                         Path = dir,
                         IsDirectory = true,
@@ -177,7 +177,7 @@ namespace StatusApp
                 {
                     configManager.LoadConfig(ConfigFilePath);
                     LoadApplicationOptions();
-                    
+
                     LoadDirectoryForUI();
                 }
                 else
@@ -206,15 +206,16 @@ namespace StatusApp
                 if (!deploymentMethods.IsDirectoryEmpty(ConfigData.sourceFolder))
                 {
 
-                    DateTime timestamp = deploymentMethods.CreateBackupInstance(ConfigData);
+                    DateTime timestamp = deploymentMethods.CreateBackupInstance(ConfigData.backupFolder);
 
                     BackupDestination(timestamp);
 
                     DeleteItems(DestinationUnwantedItems);
 
-                    deploymentMethods.CopySourceToDestination(ConfigData, txtCopyCount, ref CreatedFolderCount, ref CreatedFileCount);
+                    deploymentMethods.CopySourceToDestination(ConfigData.sourceFolder, ConfigData.destinationFolders, txtCopyCount, ref CreatedFolderCount, ref CreatedFileCount);
 
-                    //deploymentMethods.CreateBackupSource(ConfigData, timestamp); //Comment to not empty source
+                    //deploymentMethods.CreateBackupSource(ConfigData.sourceFolder, ConfigData.backupFolder, timestamp); //Comment to not empty source
+
 
                     BackupFolderCount = 0;
                     BackupFileCount = 0;
@@ -242,7 +243,7 @@ namespace StatusApp
 
         private void BackupDestination(DateTime timestamp)
         {
-            string backupPath = deploymentMethods.GetBackupPath(ConfigData, timestamp);
+            string backupPath = deploymentMethods.GetBackupPath(ConfigData.backupFolder, timestamp);
 
             string destinationBackupFolder = Path.Combine(backupPath, DestinationFolderName);
 
@@ -272,7 +273,7 @@ namespace StatusApp
 
         private void BackupAllItems(string sourceDir, string destDir, DateTime backupStamp, bool isFirstIteration)
         {
-            string backupPath = deploymentMethods.GetBackupPath(ConfigData, backupStamp);
+            string backupPath = deploymentMethods.GetBackupPath(ConfigData.backupFolder, backupStamp);
 
             string backupDateTime = "Backup " + backupStamp.ToString("yyyy-MM-dd_HH:mm:ss");
 
@@ -349,17 +350,20 @@ namespace StatusApp
         {
             rollbackPopup.IsOpen = true;
 
-            deploymentMethods.LoadBackupOptions(ConfigData, BackupDropdown, performRollbackBtn);
+            deploymentMethods.LoadBackupOptions(ConfigData.backupFolder, BackupDropdown, performRollbackBtn);
         }
 
         private void performRollbackBtn_Click(object sender, RoutedEventArgs e)
         {
             string rollbackPath = BackupDropdown.SelectedValue.ToString();
 
+
             MessageBoxResult result = MessageBox.Show($"Are you sure you want to rollback backup {Path.GetFileName(rollbackPath)} back to {DestinationFolderName}?", "Confirmation", MessageBoxButton.YesNo, MessageBoxImage.Question);
             if (result == MessageBoxResult.Yes)
             {
-                deploymentMethods.Rollback(ConfigData, rollbackPath);
+                //deploymentMethods.Rollback(ConfigData, rollbackPath);
+                deploymentMethods.Rollback(ConfigData.backupFolder, rollbackPath, ConfigData.destinationFolders);
+
             }
         }
 
@@ -372,11 +376,11 @@ namespace StatusApp
             deploymentMethods.ClearLabels(txtCopyCount, txtBackupCount, txtDeleteCount);
             SourceFolderLabel.Content = ConfigData.sourceFolder;
             BackupFolderLabel.Content = ConfigData.backupFolder;
-            deploymentMethods.AddDestinationLabels(ConfigData, DestinationLabelsPanel);
+            deploymentMethods.AddDestinationLabels(ConfigData.destinationFolders, DestinationLabelsPanel);
 
             LoadDirectoryForUI();
 
-            bool checkFolders = deploymentMethods.CheckFolders(ConfigData);
+            bool checkFolders = deploymentMethods.CheckFolders(ConfigData.sourceFolder, ConfigData.backupFolder, ConfigData.destinationFolders);
             if (!checkFolders) { Application.Current.Shutdown(); }
 
             if (MainWindow.isTabClicked) { PerformCleanUpForDeployDelete(); }
@@ -385,7 +389,7 @@ namespace StatusApp
 
         public void PerformCleanUpForDeployDelete()
         {
-            deploymentMethods.CleanupBackups(ConfigData, ApplicationChoice);
+            deploymentMethods.CleanupBackups(ConfigData.backupFolder, ConfigData.keepBackupsCount, ApplicationChoice);
         }
 
         private void CheckBox_Checked(object sender, RoutedEventArgs e)

@@ -3,12 +3,6 @@ using System.IO;
 
 namespace StatusApp
 {
-    public class Destinations
-    {
-        public string name { get; set; }
-        public string path { get; set; }
-    }
-
     public class AppConfigRoot
     {
         public Dictionary<string, ApplicationConfig> Applications { get; set; }
@@ -41,10 +35,15 @@ namespace StatusApp
             var options = new JsonSerializerOptions
             {
                 PropertyNameCaseInsensitive = true,
-                PropertyNamingPolicy = JsonNamingPolicy.CamelCase
             };
 
             Config = JsonSerializer.Deserialize<AppConfigRoot>(jsonString, options);
         }
+    }
+
+    public class Destinations
+    {
+        public string name { get; set; }
+        public string path { get; set; }
     }
 }

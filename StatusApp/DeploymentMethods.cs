@@ -9,23 +9,22 @@ namespace StatusApp
     {
         private static readonly string BackupFolderName = "Backup";
         private static readonly string DestinationFolderName = "Destination";
-        private static readonly string SourceFolderName = "Source";
         private static readonly string RollbackFile = "Rollback Log.txt";
 
         //method to check if directories exist at paths
-        public bool CheckFolders(ApplicationConfig appConfig)
+        public bool CheckFolders(string sourceFolder, string backupFolder, List<Destinations> destinationFolders)
         {
-            if (!Directory.Exists(appConfig.sourceFolder))
+            if (!Directory.Exists(sourceFolder))
             {
-                MessageBox.Show($"Source  is not existing at: {appConfig.sourceFolder}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show($"Source  is not existing at: {sourceFolder}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 return false;
             }
-            if (!Directory.Exists(appConfig.backupFolder))
+            if (!Directory.Exists(backupFolder))
             {
-                MessageBox.Show($"backup is not existing at: {appConfig.backupFolder}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show($"backup is not existing at: {backupFolder}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 return false;
             }
-            foreach (var destination in appConfig.destinationFolders)
+            foreach (var destination in destinationFolders)
             {
                 string destinationPath = destination.path;
 
@@ -52,10 +51,8 @@ namespace StatusApp
         }
 
         //method to create backup directory with specific date & time
-        public DateTime CreateBackupInstance(ApplicationConfig appConfig)
+        public DateTime CreateBackupInstance(string backupFolder)
         {
-            string backupFolder = appConfig.backupFolder;
-
             DateTime currentTime = DateTime.Now;
             string backupFolderSub = "Backup_" + currentTime.ToString("yyyy-MM-dd_HH-mm-ss");
             string backupFolderPath = Path.Combine(backupFolder, backupFolderSub);
@@ -78,9 +75,9 @@ namespace StatusApp
         }
 
         //method that loads backup folders to the rollback combobox
-        public void LoadBackupOptions(ApplicationConfig appConfig, ComboBox comboBox, Button btn)
+        public void LoadBackupOptions(string backupFolder, ComboBox comboBox, Button btn)
         {
-            var backups = Directory.GetDirectories(appConfig.backupFolder)
+            var backups = Directory.GetDirectories(backupFolder)
             .OrderByDescending(Directory.GetCreationTime)
             .Select(dir => new { Name = Path.GetFileName(dir), Path = dir })
             .ToList();
@@ -101,12 +98,8 @@ namespace StatusApp
         }
 
         //method that perfom backup directory clean up
-        public void CleanupBackups(ApplicationConfig appConfig, string applicationType)
+        public void CleanupBackups(string backupFolderPath, int keepBackupsCount, string applicationType)
         {
-            string backupFolderPath = appConfig.backupFolder;
-
-            int keepBackupsCount = appConfig.keepBackupsCount;
-
             var backups = Directory.GetDirectories(backupFolderPath).OrderByDescending(dir => Directory.GetCreationTime(dir)).ToList();
 
             if (backups.Count > keepBackupsCount)
@@ -133,11 +126,11 @@ namespace StatusApp
         }
 
         //method that adds labels for destinations on the UI
-        public void AddDestinationLabels(ApplicationConfig appConfig, StackPanel stackPanel)
+        public void AddDestinationLabels(List<Destinations> destinationFolders, StackPanel stackPanel)
         {
             stackPanel.Children.Clear();
 
-            foreach (var destination in appConfig.destinationFolders)
+            foreach (var destination in destinationFolders)
             {
                 var label = new Label
                 {
@@ -157,21 +150,19 @@ namespace StatusApp
         }
 
         //methods that returns the path of specific backup
-        public string GetBackupPath(ApplicationConfig appConfig, DateTime backupStamp)
+        public string GetBackupPath(string backupFolderPath, DateTime backupStamp)
         {
-            string backupFolderPath = appConfig.backupFolder;
+            //string backupFolderPath = appConfig.backupFolder;
             string backupPath = Path.Combine(backupFolderPath, BackupFolderName + backupStamp.ToString("_yyyy-MM-dd_HH-mm-ss"));
             return backupPath;
         }
 
         //methods that copy source to destination and update counts
-        public void CopySourceToDestination(ApplicationConfig appConfig, Label label, ref int createdFolderCount, ref int createdFileCount)
+        public void CopySourceToDestination(string sourceFolder, List<Destinations> destinationFolders, Label label, ref int createdFolderCount, ref int createdFileCount)
         {
-            string sourceFolder = appConfig.sourceFolder;
-
             bool isFirstIteration = true;
 
-            foreach (var destination in appConfig.destinationFolders)
+            foreach (var destination in destinationFolders)
             {
                 string destinationPath = destination.path;
 
@@ -266,13 +257,9 @@ namespace StatusApp
         }
 
         //methods that backup and empty the source folder
-        public void CreateBackupSource(ApplicationConfig appConfig, DateTime backupStamp)
+        public void CreateBackupSource(string sourceFolder, string backupFolder, DateTime backupStamp)
         {
-            string backupFolder = appConfig.backupFolder;
-
-            string backupPath = GetBackupPath(appConfig, backupStamp);
-
-            string sourceFolder = appConfig.sourceFolder;
+            string backupPath = GetBackupPath(backupFolder, backupStamp);
 
             string backupSubFolder = Path.Combine(backupFolder, backupPath, Path.GetFileName(sourceFolder));
 
@@ -303,9 +290,9 @@ namespace StatusApp
         }
 
         //methods that rollback backups to destination folders
-        public void Rollback(ApplicationConfig appConfig, string backupFolder)
+
+        public void Rollback(string backupFolderPath, string backupFolder, List<Destinations> destinationFolders)
         {
-            string backupFolderPath = appConfig.backupFolder;
             string backupPath = Path.Combine(backupFolder, DestinationFolderName);
             string backupFolderName = Path.GetFileName(backupFolder);
             string logPath = Path.Combine(backupFolderPath, RollbackFile);
@@ -317,7 +304,7 @@ namespace StatusApp
             }
             Log(logPath, $"Rollback of {backupFolderName} on {rollbackDateTime}: \n-----------------------------------------------------------------\n\n");
 
-            foreach (var destination in appConfig.destinationFolders)
+            foreach (var destination in destinationFolders)
             {
                 string rollbackPath = Path.Combine(backupPath, destination.name);
                 string destPath = destination.path;
@@ -325,16 +312,16 @@ namespace StatusApp
                 if (Directory.Exists(rollbackPath))
                 {
                     var commonItems = CompareDirectoryPath(rollbackPath, destPath);
-                    RollBackItems(appConfig, rollbackPath, destPath, commonItems);
+                    RollBackItems(backupFolderPath, rollbackPath, destPath, commonItems);
                 }
             }
             Log(logPath, $"\n-----------------------------------------------------------------\n");
             MessageBox.Show($" Rolled backup {backupFolderName} back to {DestinationFolderName}", "Rollback Success", MessageBoxButton.OK);
         }
 
-        private void RollBackItems(ApplicationConfig appConfig, string sourceDir, string destDir, List<string> commonFiles)
+        private void RollBackItems(string bckUpFldrPth, string sourceDir, string destDir, List<string> commonFiles)
         {
-            string logPath = Path.Combine(appConfig.backupFolder, RollbackFile);
+            string logPath = Path.Combine(bckUpFldrPth, RollbackFile);
 
             foreach (var item in commonFiles)
             {
