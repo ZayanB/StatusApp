@@ -7,8 +7,9 @@ namespace StatusApp
 {
     public class DeploymentMethods
     {
+        public static readonly string SourceFolderName = "Source";
         private static readonly string BackupFolderName = "Backup";
-        private static readonly string DestinationFolderName = "Destination";
+        public static readonly string DestinationFolderName = "Destination";
         private static readonly string RollbackFile = "Rollback Log.txt";
 
         //method to check if directories exist at paths
