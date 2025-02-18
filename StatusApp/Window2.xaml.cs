@@ -246,7 +246,7 @@ namespace StatusApp
                         DestinationUnwantedItems.Clear();
                     }
 
-                    SelectAllCheckbox.IsChecked=false;
+                    SelectAllCheckbox.IsChecked = false;
                 }
 
             }
@@ -328,7 +328,6 @@ namespace StatusApp
             }
         }
 
-        ///////////////////////////////////
         private void DeleteItems(List<string> itemsToDelete)
         {
             if (DestinationUnwantedItems == null || DestinationUnwantedItems.Count == 0)
@@ -337,27 +336,30 @@ namespace StatusApp
             }
             else
             {
-                bool isFirstIteration = true;
+                int destinationCount = 0;
 
+                foreach (var destination in ConfigData.destinationFolders)
+                {
+                    destinationCount++;
+                }
                 foreach (var item in itemsToDelete)
                 {
                     if (File.Exists(item))
                     {
                         File.Delete(item);
-                        if (isFirstIteration) { DeletedFileCount++; }//COME BACK LATER IT IS NOT CORRECT COUNTING
+                        DeletedFileCount++;
                     }
                     else if (Directory.Exists(item))
                     {
                         Directory.Delete(item, true);
-                        if (isFirstIteration) { DeletedFolderCount++; }
+                        DeletedFolderCount++;
                     }
-                    isFirstIteration = false;
+
                 }
-                txtDeleteCount.Content = $"Deleted {DeletedFolderCount} Folders & {DeletedFileCount} Files";
+                txtDeleteCount.Content = $"Deleted {DeletedFolderCount / destinationCount} Folders & {DeletedFileCount / destinationCount} Files";
             }
         }
 
-        /////////////////////////////////////////
         private void showRollbackBtn_Click(object sender, RoutedEventArgs e)
         {
             rollbackPopup.IsOpen = true;
@@ -395,6 +397,7 @@ namespace StatusApp
             if (!checkFolders) { Application.Current.Shutdown(); }
 
             if (MainWindow.isTabClicked) { PerformCleanUpForDeployDelete(); }
+            ClearSelectAllCheckBox();
 
         }
 
@@ -402,7 +405,7 @@ namespace StatusApp
         {
             deploymentMethods.CleanupBackups(ConfigData.backupFolder, ConfigData.keepBackupsCount, ApplicationChoice);
         }
-        /////////////////////////////////////////////////
+
         private void CheckBox_Checked(object sender, RoutedEventArgs e)
         {
             string basePath = ConfigData.destinationFolders[0].path;
@@ -418,13 +421,14 @@ namespace StatusApp
             var selectedItems = fileSystemItem.GetSelectedItems(DirectoryTreeView.ItemsSource as ObservableCollection<FileSystemItem>);
 
             DestinationUnwantedItems = fileSystemItem.GetUnwantedItems(selectedItems, destinationPaths, basePath);
-
         }
+
+
 
         private void CheckBox_Checked_Select_All(object sender, RoutedEventArgs e)
         {
             fileSystemItem.SelectAllItems(DirectoryTreeView.ItemsSource as ObservableCollection<FileSystemItem>, true);
- 
+
         }
 
         private void SelectAll_CheckBox_Unchecked(object sender, RoutedEventArgs e)
@@ -432,6 +436,12 @@ namespace StatusApp
 
             fileSystemItem.SelectAllItems(DirectoryTreeView.ItemsSource as ObservableCollection<FileSystemItem>, false);
 
+        }
+
+
+        private void ClearSelectAllCheckBox()
+        {
+            SelectAllCheckbox.IsChecked = false;
         }
 
     }
