@@ -7,9 +7,8 @@ namespace StatusApp
 {
     public class DeploymentMethods
     {
-        public static readonly string SourceFolderName = "Source";
-        private static readonly string BackupFolderName = "Backup";
-        public static readonly string DestinationFolderName = "Destination";
+        public static readonly string BackupFolderName = "Backup";
+        private static readonly string DestinationFolderName = "Destination";
         private static readonly string RollbackFile = "Rollback Log.txt";
 
         //method to check if directories exist at paths
@@ -153,7 +152,6 @@ namespace StatusApp
         //methods that returns the path of specific backup
         public string GetBackupPath(string backupFolderPath, DateTime backupStamp)
         {
-            //string backupFolderPath = appConfig.backupFolder;
             string backupPath = Path.Combine(backupFolderPath, BackupFolderName + backupStamp.ToString("_yyyy-MM-dd_HH-mm-ss"));
             return backupPath;
         }
@@ -167,14 +165,15 @@ namespace StatusApp
             {
                 string destinationPath = destination.path;
 
-                CopyDirectory(sourceFolder, destinationPath, label, ref createdFolderCount, ref createdFileCount, isFirstIteration);
+
+                label.Content = CopyDirectory(sourceFolder, destinationPath, ref createdFolderCount, ref createdFileCount, isFirstIteration);
 
                 isFirstIteration = false;
 
             }
         }
 
-        public void CopyDirectory(string originDir, string targetDir, Label label, ref int folderCount, ref int fileCount, bool isFirstIteration)
+        public string CopyDirectory(string originDir, string targetDir, ref int folderCount, ref int fileCount, bool isFirstIteration)
         {
 
             if (!Directory.Exists(targetDir))
@@ -206,17 +205,10 @@ namespace StatusApp
                         folderCount++;
                     }
                 }
-                CopyDirectory(subDir, destSubDir, label, ref folderCount, ref fileCount, isFirstIteration);
+                CopyDirectory(subDir, destSubDir, ref folderCount, ref fileCount, isFirstIteration);
             }
 
-
-            if (fileCount > 0 || folderCount > 0)
-            {
-                label.Content = $" Created {folderCount} Folders & {fileCount} Files ";
-            }
-            else
-            { label.Content = " All files are similar. No new files to create "; }
-
+            return fileCount > 0 || folderCount > 0 ? $" Created {folderCount} Folders & {fileCount} Files" : " All files are similar. No new files to create ";
         }
 
         //method that backup destination to backup folders and update counts

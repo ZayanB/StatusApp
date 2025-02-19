@@ -4,6 +4,7 @@ using System.IO;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 
+
 namespace StatusApp
 {
     /// <summary>
@@ -192,9 +193,8 @@ namespace StatusApp
 
                     LoadDirectoryForUI();
 
-                    string directoryPath = ConfigData.destinationFolders[0].path;
-
-                    DirectoryItems = fileSystemItem.LoadDirectory(directoryPath, null);
+                    string testString = Path.Combine(Path.GetTempPath(),"zayan.docx");
+                    Console.WriteLine(testString);
                 }
                 else
                 {
