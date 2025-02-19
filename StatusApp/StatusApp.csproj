@@ -13,13 +13,6 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<Reference Include="PresentationFramework" />
-		<Reference Include="WindowsBase" />
-		<Reference Include="PresentationCore" />
-		<Reference Include="System.Xaml" />
-	</ItemGroup>
-
-	<ItemGroup>
 		<PackageReference Include="Xunit.StaFact" Version="1.2.69" />
 	</ItemGroup>
 
