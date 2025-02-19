@@ -4,6 +4,7 @@ using System.IO;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 
+
 namespace StatusApp
 {
     /// <summary>
@@ -179,6 +180,9 @@ namespace StatusApp
                     LoadApplicationOptions();
 
                     LoadDirectoryForUI();
+
+                    string testString = Path.Combine(Path.GetTempPath(),"zayan.docx");
+                    Console.WriteLine(testString);
                 }
                 else
                 {
