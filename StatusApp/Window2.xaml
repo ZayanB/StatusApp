@@ -1,13 +1,12 @@
-﻿<Window x:Class="StatusApp.Window2"
+﻿<Window x:Class="StatusApp.DeployWithDelete"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:StatusApp"
         mc:Ignorable="d"
-        Title="Window2" Height="450" Width="800"
-        Icon="pack://application:,,,/logoIcon.ico">
-
+        Title="Window2" Height="450" Width="800">
+  
     <Grid Background="#00a99d">
         <Grid.RowDefinitions>
             <RowDefinition  Height="10*"/>
@@ -24,9 +23,9 @@
             </Grid.ColumnDefinitions>
 
             <Rectangle Fill="#00a99d"/>
-            <Label Content="Delpoyment with Delete" VerticalAlignment="Center" HorizontalAlignment="Center"  FontFamily="Montserrat, Helvetica, Arial, Verdana, sans-serif"  Background="#00a99d" />
+            <Label Content="Delpoyment with Delete" VerticalAlignment="Center" HorizontalAlignment="Center" FontFamily="Montserrat, Helvetica, Arial, Verdana, sans-serif"   Background="#00a99d" />
 
-            <Label Grid.Column="1" VerticalAlignment="Center" HorizontalAlignment="Center" Content="SafeCopy" FontFamily="Montserrat, Helvetica, Arial, Verdana, sans-serif" FontSize="18"/>
+            <Label Grid.Column="1" VerticalAlignment="Center" HorizontalAlignment="Center" Content="SafeCopy" FontFamily="Montserrat, Helvetica, Arial, Verdana, sans-serif"  FontSize="18"/>
         </Grid>
 
         <Grid Grid.Row="1">

@@ -16,12 +16,12 @@ namespace StatusApp
         {
             if (!Directory.Exists(sourceFolder))
             {
-                MessageBox.Show($"Source  is not existing at: {sourceFolder}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                ShowMessageBox($"Source  is not existing at: {sourceFolder}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 return false;
             }
             if (!Directory.Exists(backupFolder))
             {
-                MessageBox.Show($"backup is not existing at: {backupFolder}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                ShowMessageBox($"backup is not existing at: {backupFolder}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 return false;
             }
             foreach (var destination in destinationFolders)
@@ -30,7 +30,7 @@ namespace StatusApp
 
                 if (!Directory.Exists(destinationPath))
                 {
-                    MessageBox.Show($"destination is not existing at: {destinationPath}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    ShowMessageBox($"destination is not existing at: {destinationPath}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                     return false;
                 }
             }
@@ -44,14 +44,14 @@ namespace StatusApp
 
             if (!Directory.EnumerateFileSystemEntries(directoryPath).Any())
             {
-                MessageBox.Show($"{directoryName} is Empty.Operation can't be completed.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                ShowMessageBox($"{directoryName} is Empty.Operation can't be completed.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 return true;
             }
             return false;
         }
 
         //method to create backup directory with specific date & time
-        public DateTime CreateBackupInstance(string backupFolder)
+        public DateTime CreateBackupInstance(string backupFolder) //COULD BE TESTED
         {
             DateTime currentTime = DateTime.Now;
             string backupFolderSub = "Backup_" + currentTime.ToString("yyyy-MM-dd_HH-mm-ss");
@@ -104,19 +104,16 @@ namespace StatusApp
 
             if (backups.Count > keepBackupsCount)
             {
-                MessageBoxResult result = MessageBox.Show($"Do you want to cleanup backups for {applicationType}?", "Confirmation", MessageBoxButton.YesNo, MessageBoxImage.Question);
-
+                MessageBoxResult result = GetMessageBoxResult($"Do you want to cleanup backups for {applicationType}?");
                 if (result == MessageBoxResult.Yes)
                 {
-                    MessageBoxResult result2 = MessageBox.Show($"This will keep the most recent {keepBackupsCount} backups. Are you sure you want to proceed?", "Confirmation", MessageBoxButton.YesNo, MessageBoxImage.Question);
+
+                    MessageBoxResult result2 = GetMessageBoxResult($"This will keep the most recent {keepBackupsCount} backups");
+
                     if (result2 == MessageBoxResult.Yes)
                     {
-                        backups = backups.Skip(keepBackupsCount).ToList();
-                        foreach (var backup in backups)
-                        {
-                            Directory.Delete(backup, true);
-                        }
-                        MessageBox.Show($"Deleted {backups.Count} backups", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
+                        int backupsDeleted = DeleteUnwantedBackups(backups, keepBackupsCount);
+                        ShowMessageBox($"Deleted {backupsDeleted} backups", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
                     }
 
                 }
@@ -124,6 +121,31 @@ namespace StatusApp
             }
 
         }
+
+        public int DeleteUnwantedBackups(List<string> backups, int keepBackupsCount)
+        {
+            backups = backups.Skip(keepBackupsCount).ToList();
+
+            foreach (var backup in backups)
+            {
+                Directory.Delete(backup, true);
+            }
+
+            return backups.Count;
+        }
+
+        public void ShowMessageBox(string msgBoxText, string msgBoxCaption, MessageBoxButton msgBoxBtn, MessageBoxImage msgBoxImage)
+        {
+            MessageBox.Show(msgBoxText, msgBoxCaption, msgBoxBtn, msgBoxImage);
+        }
+
+        public MessageBoxResult GetMessageBoxResult(string messageBoxText)
+        {
+            MessageBoxResult result = MessageBox.Show(messageBoxText, "Confirmation", MessageBoxButton.YesNo, MessageBoxImage.Question);
+
+            return result;
+        }
+
 
         //method that adds labels for destinations on the UI
         public void AddDestinationLabels(List<Destinations> destinationFolders, StackPanel stackPanel)
@@ -164,7 +186,6 @@ namespace StatusApp
             foreach (var destination in destinationFolders)
             {
                 string destinationPath = destination.path;
-
 
                 label.Content = CopyDirectory(sourceFolder, destinationPath, ref createdFolderCount, ref createdFileCount, isFirstIteration);
 
@@ -263,7 +284,7 @@ namespace StatusApp
             BackupSource(sourceFolder, backupSubFolder);
         }
 
-        private void BackupSource(string sourceFolder, string destinationFolder)
+        public void BackupSource(string sourceFolder, string destinationFolder)
         {
             // Move all files
             foreach (string file in Directory.GetFiles(sourceFolder))
@@ -309,12 +330,12 @@ namespace StatusApp
                 }
             }
             Log(logPath, $"\n-----------------------------------------------------------------\n");
-            MessageBox.Show($" Rolled backup {backupFolderName} back to {DestinationFolderName}", "Rollback Success", MessageBoxButton.OK);
+            ShowMessageBox($" Rolled backup {backupFolderName} back to {DestinationFolderName}", "Rollback Success", MessageBoxButton.OK, MessageBoxImage.Information);
         }
 
-        private void RollBackItems(string bckUpFldrPth, string sourceDir, string destDir, List<string> commonFiles)
+        public void RollBackItems(string backUpFldrPth, string sourceDir, string destDir, List<string> commonFiles)
         {
-            string logPath = Path.Combine(bckUpFldrPth, RollbackFile);
+            string logPath = Path.Combine(backUpFldrPth, RollbackFile);
 
             foreach (var item in commonFiles)
             {

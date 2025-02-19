@@ -4,7 +4,6 @@ using System.IO;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 
-
 namespace StatusApp
 {
     /// <summary>
@@ -14,6 +13,8 @@ namespace StatusApp
 
     public class FileSystemItem : INotifyPropertyChanged
     {
+        private DeploymentMethods deploymentMethods = new DeploymentMethods();
+
         public string Name { get; set; }
         public string Path { get; set; }
         public bool IsDirectory { get; set; }
@@ -99,7 +100,7 @@ namespace StatusApp
             }
             catch (Exception ex)
             {
-                MessageBox.Show(ex.Message);
+                deploymentMethods.ShowMessageBox(ex.Message, "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
             return items;
         }
@@ -141,7 +142,7 @@ namespace StatusApp
             return unwantedItems;
         }
     }
-    public partial class Window2 : Window
+    public partial class DeployWithDelete : Window
     {
         private static readonly string AppDirectory = AppDomain.CurrentDomain.BaseDirectory;
         private static readonly string ConfigFilePath = Path.Combine(AppDirectory, "config2.json");
@@ -168,7 +169,7 @@ namespace StatusApp
 
         List<string> DestinationUnwantedItems;
 
-        public Window2()
+        public DeployWithDelete()
         {
             try
             {
@@ -181,18 +182,16 @@ namespace StatusApp
 
                     LoadDirectoryForUI();
 
-                    string testString = Path.Combine(Path.GetTempPath(),"zayan.docx");
-                    Console.WriteLine(testString);
                 }
                 else
                 {
-                    MessageBox.Show($"Configuration File not found at {ConfigFilePath}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    deploymentMethods.ShowMessageBox($"Configuration File not found at {ConfigFilePath}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                     Application.Current.Shutdown();
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"{ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                deploymentMethods.ShowMessageBox($"{ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -214,12 +213,15 @@ namespace StatusApp
 
                     BackupDestination(timestamp);
 
-                    DeleteItems(DestinationUnwantedItems);
+                    if (!IsUnwantedItemsEmpty())
+                    {
+                        string labelContent = DeleteItems(DestinationUnwantedItems);
+                        txtDeleteCount.Content = labelContent;
+                    }
 
                     deploymentMethods.CopySourceToDestination(ConfigData.sourceFolder, ConfigData.destinationFolders, txtCopyCount, ref CreatedFolderCount, ref CreatedFileCount);
 
                     //deploymentMethods.CreateBackupSource(ConfigData.sourceFolder, ConfigData.backupFolder, timestamp); //Comment to not empty source
-
 
                     BackupFolderCount = 0;
                     BackupFileCount = 0;
@@ -239,7 +241,7 @@ namespace StatusApp
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Failed. {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                deploymentMethods.ShowMessageBox($"Failed. {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
 
@@ -315,39 +317,41 @@ namespace StatusApp
             }
         }
 
-        private void DeleteItems(List<string> itemsToDelete)
+        private bool IsUnwantedItemsEmpty()
         {
             if (DestinationUnwantedItems == null || DestinationUnwantedItems.Count == 0)
             {
                 txtDeleteCount.Content = $" No Items Deleted ";
+                return true;
             }
-            else
-            {
-                bool isFirstIteration = true;
+            return false;
+        }
 
-                foreach (var item in itemsToDelete)
+        public string DeleteItems(List<string> itemsToDelete) //TEST
+        {
+            string labelContent = String.Empty;
+
+            bool isFirstIteration = true;
+
+            foreach (var item in itemsToDelete)
+            {
+
+                if (File.Exists(item))
                 {
-                    try
-                    {
-                        if (File.Exists(item))
-                        {
-                            File.Delete(item);
-                            if (isFirstIteration) { DeletedFileCount++; }
-                        }
-                        else if (Directory.Exists(item))
-                        {
-                            Directory.Delete(item, true);
-                            if (isFirstIteration) { DeletedFolderCount++; }
-                        }
-                        isFirstIteration = false;
-                    }
-                    catch (Exception ex)
-                    {
-                        MessageBox.Show($"Error deleting {item}: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                    }
-                    txtDeleteCount.Content = $" Deleted {DeletedFolderCount} Folders & {DeletedFileCount} Files ";
+                    File.Delete(item);
+                    if (isFirstIteration) { DeletedFileCount++; }
                 }
+                else if (Directory.Exists(item))
+                {
+                    Directory.Delete(item, true);
+                    if (isFirstIteration) { DeletedFolderCount++; }
+                }
+                isFirstIteration = false;
+
+                labelContent = $" Deleted {DeletedFolderCount} Folders & {DeletedFileCount} Files ";
             }
+
+            return labelContent;
         }
 
         private void showRollbackBtn_Click(object sender, RoutedEventArgs e)
@@ -362,12 +366,10 @@ namespace StatusApp
             string rollbackPath = BackupDropdown.SelectedValue.ToString();
 
 
-            MessageBoxResult result = MessageBox.Show($"Are you sure you want to rollback backup {Path.GetFileName(rollbackPath)} back to {DestinationFolderName}?", "Confirmation", MessageBoxButton.YesNo, MessageBoxImage.Question);
+            MessageBoxResult result = deploymentMethods.GetMessageBoxResult($"Are you sure you want to rollback backup {Path.GetFileName(rollbackPath)} back to {DestinationFolderName}?");
             if (result == MessageBoxResult.Yes)
-            {
-                //deploymentMethods.Rollback(ConfigData, rollbackPath);
+            {           
                 deploymentMethods.Rollback(ConfigData.backupFolder, rollbackPath, ConfigData.destinationFolders);
-
             }
         }
 
