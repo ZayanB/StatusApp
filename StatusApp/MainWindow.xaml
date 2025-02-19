@@ -37,9 +37,6 @@
                         <Label Grid.Column="1" Content="SafeCopy" FontFamily="Montserrat, Helvetica, Arial, Verdana, sans-serif" FontSize="18" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                     </Grid>
 
-
-
-
                     <Grid Grid.Row="1">
 
                         <Grid.ColumnDefinitions>

@@ -17,7 +17,6 @@ namespace StatusApp
         public string Name { get; set; }
         public string Path { get; set; }
         public bool IsDirectory { get; set; }
-
         public FileSystemItem Parent { get; set; } //to reference parent folder
 
         public ObservableCollection<FileSystemItem> Children { get; set; } = new ObservableCollection<FileSystemItem>(); //collection of sub files
@@ -140,16 +139,27 @@ namespace StatusApp
             }
             return unwantedItems;
         }
+
+        public void SelectAllItems(ObservableCollection<FileSystemItem> items, bool isSelected)
+        {
+            foreach (var item in items)
+            {
+                item.IsSelected = isSelected;
+
+                if (item.IsDirectory && item.Children.Any())
+                {
+                    SelectAllItems(item.Children, isSelected);
+                }
+            }
+
+        }
+
     }
     public partial class Window2 : Window
     {
         private static readonly string AppDirectory = AppDomain.CurrentDomain.BaseDirectory;
         private static readonly string ConfigFilePath = Path.Combine(AppDirectory, "config2.json");
         //private static readonly string ConfigFilePath = Path.Combine(AppDirectory, "config4.json");
-
-        private static readonly string BackupFolderName = "Backup";
-        private static readonly string DestinationFolderName = "Destination";
-        private static readonly string RollbackFile = "Rollback Log.txt";
 
         private int BackupFolderCount = 0;
         private int BackupFileCount = 0;
@@ -165,6 +175,8 @@ namespace StatusApp
         private ConfigManager configManager = new ConfigManager();
 
         private dynamic ConfigData;
+
+        private dynamic DirectoryItems;
 
         List<string> DestinationUnwantedItems;
 
@@ -220,7 +232,6 @@ namespace StatusApp
 
                     //deploymentMethods.CreateBackupSource(ConfigData.sourceFolder, ConfigData.backupFolder, timestamp); //Comment to not empty source
 
-
                     BackupFolderCount = 0;
                     BackupFileCount = 0;
                     CreatedFolderCount = 0;
@@ -234,6 +245,8 @@ namespace StatusApp
                     {
                         DestinationUnwantedItems.Clear();
                     }
+
+                    SelectAllCheckbox.IsChecked = false;
                 }
 
             }
@@ -249,7 +262,7 @@ namespace StatusApp
         {
             string backupPath = deploymentMethods.GetBackupPath(ConfigData.backupFolder, timestamp);
 
-            string destinationBackupFolder = Path.Combine(backupPath, DestinationFolderName);
+            string destinationBackupFolder = Path.Combine(backupPath, DeploymentMethods.DestinationFolderName);
 
             bool isFirstIteration = true;
 
@@ -323,30 +336,27 @@ namespace StatusApp
             }
             else
             {
-                bool isFirstIteration = true;
+                int destinationCount = 0;
 
+                foreach (var destination in ConfigData.destinationFolders)
+                {
+                    destinationCount++;
+                }
                 foreach (var item in itemsToDelete)
                 {
-                    try
+                    if (File.Exists(item))
                     {
-                        if (File.Exists(item))
-                        {
-                            File.Delete(item);
-                            if (isFirstIteration) { DeletedFileCount++; }
-                        }
-                        else if (Directory.Exists(item))
-                        {
-                            Directory.Delete(item, true);
-                            if (isFirstIteration) { DeletedFolderCount++; }
-                        }
-                        isFirstIteration = false;
+                        File.Delete(item);
+                        DeletedFileCount++;
                     }
-                    catch (Exception ex)
+                    else if (Directory.Exists(item))
                     {
-                        MessageBox.Show($"Error deleting {item}: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                        Directory.Delete(item, true);
+                        DeletedFolderCount++;
                     }
-                    txtDeleteCount.Content = $" Deleted {DeletedFolderCount} Folders & {DeletedFileCount} Files ";
+
                 }
+                txtDeleteCount.Content = $"Deleted {DeletedFolderCount / destinationCount} Folders & {DeletedFileCount / destinationCount} Files";
             }
         }
 
@@ -362,10 +372,9 @@ namespace StatusApp
             string rollbackPath = BackupDropdown.SelectedValue.ToString();
 
 
-            MessageBoxResult result = MessageBox.Show($"Are you sure you want to rollback backup {Path.GetFileName(rollbackPath)} back to {DestinationFolderName}?", "Confirmation", MessageBoxButton.YesNo, MessageBoxImage.Question);
+            MessageBoxResult result = MessageBox.Show($"Are you sure you want to rollback backup {Path.GetFileName(rollbackPath)} back to {DeploymentMethods.DestinationFolderName}?", "Confirmation", MessageBoxButton.YesNo, MessageBoxImage.Question);
             if (result == MessageBoxResult.Yes)
             {
-                //deploymentMethods.Rollback(ConfigData, rollbackPath);
                 deploymentMethods.Rollback(ConfigData.backupFolder, rollbackPath, ConfigData.destinationFolders);
 
             }
@@ -388,6 +397,7 @@ namespace StatusApp
             if (!checkFolders) { Application.Current.Shutdown(); }
 
             if (MainWindow.isTabClicked) { PerformCleanUpForDeployDelete(); }
+            ClearSelectAllCheckBox();
 
         }
 
@@ -411,7 +421,27 @@ namespace StatusApp
             var selectedItems = fileSystemItem.GetSelectedItems(DirectoryTreeView.ItemsSource as ObservableCollection<FileSystemItem>);
 
             DestinationUnwantedItems = fileSystemItem.GetUnwantedItems(selectedItems, destinationPaths, basePath);
+        }
 
+
+
+        private void CheckBox_Checked_Select_All(object sender, RoutedEventArgs e)
+        {
+            fileSystemItem.SelectAllItems(DirectoryTreeView.ItemsSource as ObservableCollection<FileSystemItem>, true);
+
+        }
+
+        private void SelectAll_CheckBox_Unchecked(object sender, RoutedEventArgs e)
+        {
+
+            fileSystemItem.SelectAllItems(DirectoryTreeView.ItemsSource as ObservableCollection<FileSystemItem>, false);
+
+        }
+
+
+        private void ClearSelectAllCheckBox()
+        {
+            SelectAllCheckbox.IsChecked = false;
         }
 
     }
