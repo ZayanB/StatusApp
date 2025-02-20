@@ -113,7 +113,7 @@ namespace StatusApp
 
                     txtCopyCount.Content = labelContent;
 
-                    //deploymentMethods.CreateBackupSource(ConfigData.sourceFolder, ConfigData.backupFolder, timestamp); //Comment to not empty source
+                    deploymentMethods.CreateBackupSource(ConfigData.sourceFolder, ConfigData.backupFolder, timestamp); //Comment to not empty source
 
                     BackupFolderCount = 0;
                     BackupFileCount = 0;
