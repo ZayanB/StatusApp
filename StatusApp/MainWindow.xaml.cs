@@ -29,7 +29,7 @@ namespace StatusApp
         private DeploymentMethods deploymentMethods = new DeploymentMethods();
         private ConfigManager configManager = new ConfigManager();
         private dynamic ConfigData;
-        private Window2 window2 = new Window2();
+        private DeployWithDelete window2 = new DeployWithDelete();
 
         public static bool isTabClicked { get; set; }
 
@@ -39,7 +39,7 @@ namespace StatusApp
             {
                 InitializeComponent();
 
-                var deploymentWithDeleteWindow = new Window2();
+                var deploymentWithDeleteWindow = new DeployWithDelete();
                 DeploymentWithDeleteFrame.Content = deploymentWithDeleteWindow.Content;
 
                 if (File.Exists(ConfigFilePath))
