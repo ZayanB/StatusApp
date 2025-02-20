@@ -1,5 +1,5 @@
 using StatusApp;
-using Xunit.Abstractions;
+
 
 namespace ProjectUnitTesting
 {
@@ -43,12 +43,11 @@ namespace ProjectUnitTesting
             Directory.CreateDirectory(subDir);//create the copy from subDir
             File.WriteAllText(Path.Combine(subDir, "subFile.txt"), "Nested File");//create a file in the copy from subDir 
 
-
-
             //Call the method 
             var result = deploymentMethods.CopyDirectory(originDir, targetDir, true);
             int folderCount = result.Item1;
             int fileCount = result.Item2;
+
             //Check result
             Assert.True(Directory.Exists(targetDir));
             Assert.True(File.Exists(Path.Combine(targetDir, "testFile.txt")));
@@ -57,11 +56,8 @@ namespace ProjectUnitTesting
             Assert.Equal(2, folderCount);
             Assert.Equal(2, fileCount);
 
-
-
             //Delete dirs and files for reTesting Correctly
             Directory.Delete(targetDir, true);
-
         }
 
         [Fact]
@@ -74,10 +70,8 @@ namespace ProjectUnitTesting
             Directory.CreateDirectory(targetDir);
             File.WriteAllText(Path.Combine(targetDir, "testFile.txt"), "Hello World");
 
-
             var result = deploymentMethods.CopyDirectory(originDir, targetDir, true);
             int folderCount = result.Item1, fileCount = result.Item2;
-
 
             Assert.Equal(0, folderCount);
             Assert.Equal(0, fileCount);
@@ -92,14 +86,12 @@ namespace ProjectUnitTesting
             string backupLogFile = "log.txt";
             Directory.CreateDirectory(Path.Combine(sourceDir, item));
 
-
             var result = deploymentMethods.BackupFiles(sourceDir, destDir, item, backupLogFile, true);
 
             int backupFolderCount = result.Item1;
 
             Assert.True(Directory.Exists(Path.Combine(destDir, item)));
             Assert.Equal(1, backupFolderCount);
-
 
             Directory.Delete(Path.Combine(destDir, item));
         }
