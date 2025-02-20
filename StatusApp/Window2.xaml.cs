@@ -227,11 +227,19 @@ namespace StatusApp
 
                     if (!IsUnwantedItemsEmpty())
                     {
-                        string labelContent = DeleteItems(DestinationUnwantedItems);
-                        txtDeleteCount.Content = labelContent;
+                        int destinationsCount = ConfigData.destinationFolders.Count;
+                        var deleteResult = deploymentMethods.DeleteItems(DestinationUnwantedItems);
+                        txtDeleteCount.Content = $" Deleted {deleteResult.Item1 / destinationsCount} Folders & {deleteResult.Item2 / destinationsCount} Files ";
                     }
 
-                    deploymentMethods.CopySourceToDestination(ConfigData.sourceFolder, ConfigData.destinationFolders, txtCopyCount, ref CreatedFolderCount, ref CreatedFileCount);
+                    var copyCounts = deploymentMethods.CopySourceToDestination(ConfigData.sourceFolder, ConfigData.destinationFolders);
+
+                    CreatedFileCount = copyCounts.Item2;
+                    CreatedFolderCount = copyCounts.Item1;
+
+                    string copyLabelContent = CreatedFileCount > 0 || CreatedFolderCount > 0 ? $" Created {CreatedFolderCount} Folders & {CreatedFileCount} Files" : " All files are similar. No new files to create ";
+
+                    txtCopyCount.Content = copyLabelContent;
 
                     //deploymentMethods.CreateBackupSource(ConfigData.sourceFolder, ConfigData.backupFolder, timestamp); //Comment to not empty source
 
@@ -314,7 +322,12 @@ namespace StatusApp
             }
             foreach (var item in allDestinationItems)
             {
-                deploymentMethods.BackupFiles(sourceDir, destDir, item, backupLogFile, ref BackupFolderCount, ref BackupFileCount, isFirstIteration);
+                var backupResult = deploymentMethods.BackupFiles(sourceDir, destDir, item, backupLogFile, isFirstIteration);
+                if (isFirstIteration)
+                {
+                    BackupFolderCount += backupResult.Item1;
+                    BackupFileCount += backupResult.Item2;
+                }
             }
 
             txtBackupCount.Content = $" Backed Up {BackupFolderCount} Folders & {BackupFileCount} Files ";
@@ -341,33 +354,6 @@ namespace StatusApp
             return false;
         }
 
-public string DeleteItems(List<string> itemsToDelete) //TEST
-{
-    string labelContent = String.Empty;
-
-    bool isFirstIteration = true;
-
-    foreach (var item in itemsToDelete)
-    {
-
-        if (File.Exists(item))
-        {
-            File.Delete(item);
-            if (isFirstIteration) { DeletedFileCount++; }
-        }
-        else if (Directory.Exists(item))
-        {
-            Directory.Delete(item, true);
-            if (isFirstIteration) { DeletedFolderCount++; }
-        }
-        isFirstIteration = false;
-
-        labelContent = $" Deleted {DeletedFolderCount} Folders & {DeletedFileCount} Files ";
-    }
-
-    return labelContent;
-}
-
         private void showRollbackBtn_Click(object sender, RoutedEventArgs e)
         {
             rollbackPopup.IsOpen = true;
@@ -382,7 +368,7 @@ public string DeleteItems(List<string> itemsToDelete) //TEST
 
             MessageBoxResult result = deploymentMethods.GetMessageBoxResult($"Are you sure you want to rollback backup {Path.GetFileName(rollbackPath)} back to {DestinationFolderName}?");
             if (result == MessageBoxResult.Yes)
-            {           
+            {
                 deploymentMethods.Rollback(ConfigData.backupFolder, rollbackPath, ConfigData.destinationFolders);
             }
         }

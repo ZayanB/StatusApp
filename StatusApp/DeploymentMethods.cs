@@ -112,8 +112,14 @@ namespace StatusApp
 
                     if (result2 == MessageBoxResult.Yes)
                     {
-                        int backupsDeleted = DeleteUnwantedBackups(backups, keepBackupsCount);
-                        ShowMessageBox($"Deleted {backupsDeleted} backups", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
+
+                        var backupsToDelete=GetUnwantedBackups(backups,keepBackupsCount);
+                        List<string> backupToDeletePaths = backupsToDelete.Item1;
+                        int backupToDeleteCount = backupsToDelete.Item2;
+
+                        DeleteItems(backupToDeletePaths);
+
+                        ShowMessageBox($"Deleted {backupToDeleteCount} backups", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
                     }
 
                 }
@@ -122,16 +128,13 @@ namespace StatusApp
 
         }
 
-        public int DeleteUnwantedBackups(List<string> backups, int keepBackupsCount)
+        public (List<string>, int backupsTodelete) GetUnwantedBackups(List<string> backups, int keepBackupsCount)
         {
             backups = backups.Skip(keepBackupsCount).ToList();
 
-            foreach (var backup in backups)
-            {
-                Directory.Delete(backup, true);
-            }
+            int backupsToDelete = backups.Count;
 
-            return backups.Count;
+            return (backups, backupsToDelete);
         }
 
         public void ShowMessageBox(string msgBoxText, string msgBoxCaption, MessageBoxButton msgBoxBtn, MessageBoxImage msgBoxImage)
@@ -145,7 +148,6 @@ namespace StatusApp
 
             return result;
         }
-
 
         //method that adds labels for destinations on the UI
         public void AddDestinationLabels(List<Destinations> destinationFolders, StackPanel stackPanel)
@@ -179,30 +181,38 @@ namespace StatusApp
         }
 
         //methods that copy source to destination and update counts
-        public void CopySourceToDestination(string sourceFolder, List<Destinations> destinationFolders, Label label, ref int createdFolderCount, ref int createdFileCount)
+        public (int createdFolderCount, int createdFileCount) CopySourceToDestination(string sourceFolder, List<Destinations> destinationFolders)
         {
+            int createdFolderCount = 0;
+            int createdFileCount = 0;
+
             bool isFirstIteration = true;
 
             foreach (var destination in destinationFolders)
             {
                 string destinationPath = destination.path;
-
-                label.Content = CopyDirectory(sourceFolder, destinationPath, ref createdFolderCount, ref createdFileCount, isFirstIteration);
-
+                var copyCounts = CopyDirectory(sourceFolder, destinationPath, isFirstIteration);
+                if (isFirstIteration)
+                {
+                    createdFolderCount = copyCounts.createdFolderCount;
+                    createdFileCount = copyCounts.createdFileCount;
+                }
                 isFirstIteration = false;
-
             }
+
+            return (createdFolderCount, createdFileCount);
         }
 
-        public string CopyDirectory(string originDir, string targetDir, ref int folderCount, ref int fileCount, bool isFirstIteration)
+        public (int createdFolderCount, int createdFileCount) CopyDirectory(string originDir, string targetDir, bool isFirstIteration)
         {
+            int createdFolderCount = 0, createdFileCount = 0;
 
             if (!Directory.Exists(targetDir))
             {
                 Directory.CreateDirectory(targetDir);
                 if (isFirstIteration)
                 {
-                    folderCount++;
+                    createdFolderCount++;
                 }
             }
 
@@ -210,7 +220,7 @@ namespace StatusApp
             {
                 string fileName = Path.GetFileName(file);
                 string destFile = Path.Combine(targetDir, fileName);
-                if (!File.Exists(destFile)) { if (isFirstIteration) { fileCount++; } }
+                if (!File.Exists(destFile)) { if (isFirstIteration) { createdFileCount++; } }
                 File.Copy(file, destFile, true);
             }
 
@@ -223,18 +233,21 @@ namespace StatusApp
                     Directory.CreateDirectory(destSubDir);
                     if (isFirstIteration)
                     {
-                        folderCount++;
+                        createdFolderCount++;
                     }
                 }
-                CopyDirectory(subDir, destSubDir, ref folderCount, ref fileCount, isFirstIteration);
+                var result = CopyDirectory(subDir, destSubDir, isFirstIteration);
+                createdFolderCount += result.createdFolderCount;
+                createdFileCount += result.createdFileCount;
             }
 
-            return fileCount > 0 || folderCount > 0 ? $" Created {folderCount} Folders & {fileCount} Files" : " All files are similar. No new files to create ";
+            return (createdFolderCount, createdFileCount);
         }
 
-        //method that backup destination to backup folders and update counts
-        public void BackupFiles(string sourceDir, string destDir, string item, string backupLogFile, ref int backupFolderCount, ref int backupFileCount, bool isFirstIteration)
+        public (int backupFolderCount, int backupFileCount) BackupFiles(string sourceDir, string destDir, string item, string backupLogFile, bool isFirstIteration)
         {
+            int backupFolderCount = 0, backupFileCount = 0;
+
             string sourcePath = Path.Combine(sourceDir, item);
 
             string destPath = Path.Combine(destDir, item);
@@ -262,9 +275,10 @@ namespace StatusApp
                     backupFileCount++;
                 }
             }
+
+            return (backupFolderCount, backupFileCount);
         }
 
-        //method that appends text to log files
         private void Log(string logFilePath, string logEntry)
         {
             File.AppendAllText(logFilePath, logEntry);
@@ -351,5 +365,28 @@ namespace StatusApp
 
         }
 
+        public (int deletedFolderCount, int deletedFileCount) DeleteItems(List<string> itemsToDelete)
+        {
+
+            int deletedFolderCount = 0, deletedFileCount = 0;
+
+            foreach (var item in itemsToDelete)
+            {
+
+                if (File.Exists(item))
+                {
+                    File.Delete(item);
+                    deletedFileCount++;
+                }
+                else if (Directory.Exists(item))
+                {
+                    Directory.Delete(item, true);
+                    deletedFolderCount++;
+                }
+
+            }
+
+            return (deletedFolderCount, deletedFileCount);
+        }
     }
 }

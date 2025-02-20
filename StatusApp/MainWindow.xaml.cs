@@ -89,7 +89,8 @@ namespace StatusApp
             BackupFolderLabel.Content = ConfigData.backupFolder;
             deploymentMethods.AddDestinationLabels(ConfigData.destinationFolders, DestinationLabelsPanel);
 
-            bool checkFolders = deploymentMethods.CheckFolders(ConfigData.sourceFolder,ConfigData.backupFolder,ConfigData.destinationFolders);
+
+            bool checkFolders = deploymentMethods.CheckFolders(ConfigData.sourceFolder, ConfigData.backupFolder, ConfigData.destinationFolders);
             if (!checkFolders) { Application.Current.Shutdown(); }
 
             if (IsAppLoaded) { deploymentMethods.CleanupBackups(ConfigData.backupFolder, ConfigData.keepBackupsCount, ApplicationChoice); }
@@ -105,7 +106,14 @@ namespace StatusApp
 
                     BackupDestination(timestamp);
 
-                    deploymentMethods.CopySourceToDestination(ConfigData.sourceFolder, ConfigData.destinationFolders, txtCopyCount, ref CreatedFolderCount, ref CreatedFileCount);
+                    var copyCounts = deploymentMethods.CopySourceToDestination(ConfigData.sourceFolder, ConfigData.destinationFolders);
+
+                    CreatedFileCount = copyCounts.Item2;
+                    CreatedFolderCount = copyCounts.Item1;
+
+                    string labelContent = CreatedFileCount > 0 || CreatedFolderCount > 0 ? $" Created {CreatedFolderCount} Folders & {CreatedFileCount} Files" : " All files are similar. No new files to create ";
+
+                    txtCopyCount.Content = labelContent;
 
                     //deploymentMethods.CreateBackupSource(ConfigData.sourceFolder, ConfigData.backupFolder, timestamp); //Comment to not empty source
 
@@ -175,21 +183,23 @@ namespace StatusApp
 
             string backupLogFile = Path.Combine(backupPath, "Backup Log.txt");
 
-
             if (!File.Exists(backupLogFile))
             {
                 File.WriteAllText(backupLogFile, $"{backupDateTime} Log: \n------------------------------------------------------------------------------------------------------------------\n\n");
             }
             foreach (var item in commonFiles)
             {
-                deploymentMethods.BackupFiles(sourceDir, destDir, item, backupLogFile, ref BackupFolderCount, ref BackupFileCount, isFirstIteration);
-
+                var backupResult = deploymentMethods.BackupFiles(sourceDir, destDir, item, backupLogFile, isFirstIteration);
+                if (isFirstIteration)
+                {
+                    BackupFolderCount += backupResult.Item1;
+                    BackupFileCount += backupResult.Item2;
+                }
             }
             ReplacedFileCount = BackupFileCount;
             ReplacedFolderCount = BackupFolderCount;
             txtBackupCount.Content = $" Backed Up {BackupFolderCount} Folders & {BackupFileCount} Files ";
             txtReplacedCount.Content = $" Replaced {ReplacedFolderCount} Folders & {ReplacedFileCount} Files";
-
         }
 
         private void rollbackBtn_Click(object sender, RoutedEventArgs e)

@@ -43,18 +43,21 @@ namespace ProjectUnitTesting
             Directory.CreateDirectory(subDir);//create the copy from subDir
             File.WriteAllText(Path.Combine(subDir, "subFile.txt"), "Nested File");//create a file in the copy from subDir 
 
-            int folderCount = 0, fileCount = 0;
+
 
             //Call the method 
-            var result = deploymentMethods.CopyDirectory(originDir, targetDir, ref folderCount, ref fileCount, true);
-
+            var result = deploymentMethods.CopyDirectory(originDir, targetDir, true);
+            int folderCount = result.Item1;
+            int fileCount = result.Item2;
             //Check result
             Assert.True(Directory.Exists(targetDir));
             Assert.True(File.Exists(Path.Combine(targetDir, "testFile.txt")));
             Assert.True(Directory.Exists(Path.Combine(targetDir, "subDir")));
             Assert.True(File.Exists(Path.Combine(targetDir, "subDir", "subFile.txt")));
-       
-            Assert.Equal(" Created 2 Folders & 2 Files", result);
+            Assert.Equal(2, folderCount);
+            Assert.Equal(2, fileCount);
+
+
 
             //Delete dirs and files for reTesting Correctly
             Directory.Delete(targetDir, true);
@@ -71,11 +74,13 @@ namespace ProjectUnitTesting
             Directory.CreateDirectory(targetDir);
             File.WriteAllText(Path.Combine(targetDir, "testFile.txt"), "Hello World");
 
-            int folderCount = 0, fileCount = 0;
 
-            var result = deploymentMethods.CopyDirectory(originDir, targetDir, ref folderCount, ref fileCount, true);
+            var result = deploymentMethods.CopyDirectory(originDir, targetDir, true);
+            int folderCount = result.Item1, fileCount = result.Item2;
 
-            Assert.Equal(" All files are similar. No new files to create ", result);
+
+            Assert.Equal(0, folderCount);
+            Assert.Equal(0, fileCount);
         }
 
         [Fact]
@@ -86,9 +91,11 @@ namespace ProjectUnitTesting
             string item = "testFolder";
             string backupLogFile = "log.txt";
             Directory.CreateDirectory(Path.Combine(sourceDir, item));
-            int backupFolderCount = 0, backupFileCount = 0;
 
-            deploymentMethods.BackupFiles(sourceDir, destDir, item, backupLogFile, ref backupFolderCount, ref backupFileCount, true);
+
+            var result = deploymentMethods.BackupFiles(sourceDir, destDir, item, backupLogFile, true);
+
+            int backupFolderCount = result.Item1;
 
             Assert.True(Directory.Exists(Path.Combine(destDir, item)));
             Assert.Equal(1, backupFolderCount);
@@ -106,15 +113,14 @@ namespace ProjectUnitTesting
             string backupLogFile = "log.txt";
             Directory.CreateDirectory(sourceDir);
             File.WriteAllText(Path.Combine(sourceDir, item), "Hello");
-            int backupFolderCount = 0, backupFileCount = 0;
 
-            deploymentMethods.BackupFiles(sourceDir, destDir, item, backupLogFile, ref backupFolderCount, ref backupFileCount, true);
+            var result = deploymentMethods.BackupFiles(sourceDir, destDir, item, backupLogFile, true);
+            int backupFileCount = result.Item2; ;
 
             Assert.True(File.Exists(Path.Combine(destDir, item)));
             Assert.Equal(1, backupFileCount);
 
             File.Delete(Path.Combine(destDir, item));
-
 
         }
 
@@ -175,8 +181,7 @@ namespace ProjectUnitTesting
 
         }
 
-        [WpfFact]
-        [STAThread]
+        [Fact]
         public void DeleteItems_DeletsFilesAndFolders_Correctly()
         {
             var itemsToDelete = new List<string>
@@ -186,18 +191,20 @@ namespace ProjectUnitTesting
             };
 
             Directory.CreateDirectory(itemsToDelete[1]);
-            DeployWithDelete deployWithDelete = new DeployWithDelete();
 
-            string result = deployWithDelete.DeleteItems(itemsToDelete);
+            var result = deploymentMethods.DeleteItems(itemsToDelete);
+            int deletedFolders = result.Item1;
+            int deletedFiles = result.Item2;
 
-            Assert.Equal(" Deleted 0 Folders & 1 Files ", result);
+            Assert.Equal(1, deletedFiles);
+            Assert.Equal(1, deletedFolders);
             Assert.True(!File.Exists(itemsToDelete[0]));
             Assert.True(!Directory.Exists(itemsToDelete[1]));
 
         }
 
         [Fact]
-        public void DeleteUnwantedBackups_Should_Keep_Wanted_Backups()
+        public void GetUnwantedBackups_Should_Sort_And_Return()
         {
             string backupFolder = Path.Combine(Path.GetTempPath(), "BackupFolderTest");
 
@@ -212,25 +219,24 @@ namespace ProjectUnitTesting
                 Path.Combine(backupFolder,"backup5")
             };
 
-            foreach (var backup in backups)
-            {
-                Directory.CreateDirectory(backup);
-            }
-
             int keepBackupsCount = 3;
 
-            var result = deploymentMethods.DeleteUnwantedBackups(backups, keepBackupsCount);
+            var result = deploymentMethods.GetUnwantedBackups(backups, keepBackupsCount);
 
-            Assert.Equal(2, result);
-            Assert.True(Directory.Exists(Path.Combine(backupFolder, "backup1")));
-            Assert.True(Directory.Exists(Path.Combine(backupFolder, "backup2")));
-            Assert.True(Directory.Exists(Path.Combine(backupFolder, "backup3")));
-            Assert.False(Directory.Exists(Path.Combine(backupFolder, "backup4")));
-            Assert.False(Directory.Exists(Path.Combine(backupFolder, "backup5")));
+            List<string> backupsToDelete = result.Item1;
+            int backupsToDeleteCount = result.Item2;
+
+            var expectedBackupsToDelete = new List<string>
+            {
+                Path.Combine(backupFolder,"backup4"),
+                Path.Combine(backupFolder,"backup5"),
+            };
+
+            Assert.Equal(2, backupsToDeleteCount);
+            Assert.Equal(expectedBackupsToDelete, backupsToDelete);
 
             Directory.Delete(backupFolder, true);
         }
-
 
     }
 }
