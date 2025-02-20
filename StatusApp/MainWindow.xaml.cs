@@ -18,11 +18,6 @@ namespace StatusApp
         private int CreatedFileCount = 0;
         private int CreatedFolderCount = 0;
 
-        private static readonly string BackupFolderName = "Backup";
-        private static readonly string DestinationFolderName = "Destination";
-        private static readonly string SourceFolderName = "Source";
-        private static readonly string RollbackFile = "Rollback Log.txt";
-
         private static readonly string AppDirectory = AppDomain.CurrentDomain.BaseDirectory;
         private static readonly string ConfigFilePath = Path.Combine(AppDirectory, "config.json");
         //private static readonly string ConfigFilePath = Path.Combine(AppDirectory, "config3.json");
@@ -144,7 +139,7 @@ namespace StatusApp
         {
             string backupPath = deploymentMethods.GetBackupPath(ConfigData.backupFolder, backupStamp);
 
-            string destinationBackupFolder = Path.Combine(backupPath, DestinationFolderName);
+            string destinationBackupFolder = Path.Combine(backupPath, DeploymentMethods.DestinationFolderName);
 
             string sourcePath = ConfigData.sourceFolder;
 
@@ -173,8 +168,8 @@ namespace StatusApp
                 }
                 else
                 {
-                    txtBackupCount.Content = $" No common files between {SourceFolderName} and {DestinationFolderName} to backup. Backed up only {SourceFolderName}";
-                    txtReplacedCount.Content = $"Nothing to replace between {SourceFolderName} and {DestinationFolderName}";
+                    txtBackupCount.Content = $" No common files between {DeploymentMethods.SourceFolderName} and {DeploymentMethods.DestinationFolderName} to backup. Backed up only {DeploymentMethods.SourceFolderName}";
+                    txtReplacedCount.Content = $"Nothing to replace between {DeploymentMethods.SourceFolderName} and {DeploymentMethods.DestinationFolderName}";
                 }
             }
 
@@ -211,7 +206,7 @@ namespace StatusApp
         {
             string rollbackPath = BackupDropdown.SelectedValue.ToString();
 
-            MessageBoxResult result = MessageBox.Show($"Are you sure you want to rollback backup {Path.GetFileName(rollbackPath)} back to {DestinationFolderName}?", "Confirmation", MessageBoxButton.YesNo, MessageBoxImage.Question);
+            MessageBoxResult result = MessageBox.Show($"Are you sure you want to rollback backup {Path.GetFileName(rollbackPath)} back to {DeploymentMethods.DestinationFolderName}?", "Confirmation", MessageBoxButton.YesNo, MessageBoxImage.Question);
             if (result == MessageBoxResult.Yes)
             {
                 //deploymentMethods.Rollback(ConfigData, rollbackPath);
