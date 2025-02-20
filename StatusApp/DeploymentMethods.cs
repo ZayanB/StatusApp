@@ -381,13 +381,35 @@ namespace StatusApp
                 }
                 else if (Directory.Exists(item))
                 {
-                    Directory.Delete(item, true);
-                    deletedFolderCount++;
+                    (int folderDeletedFiles, int folderDeletedFolders) = DeleteDirectory(item);
+                    deletedFileCount += folderDeletedFiles;
+                    deletedFolderCount += folderDeletedFolders + 1;
                 }
 
             }
 
             return (deletedFolderCount, deletedFileCount);
+        }
+
+        private (int deletedFileCount, int deletedFolderCount) DeleteDirectory(string directoryPath)
+        {
+            int fileCount = 0, folderCount = 0;
+
+            foreach (var file in Directory.GetFiles(directoryPath))
+            {
+                File.Delete(file);
+                fileCount++;
+            }
+
+            foreach (var dir in Directory.GetDirectories(directoryPath))
+            {
+                (int subFileCount, int subFolderCount) = DeleteDirectory(dir);
+                fileCount += subFileCount;
+                folderCount += subFolderCount + 1;
+            }
+
+            Directory.Delete(directoryPath); 
+            return (fileCount, folderCount);
         }
     }
 }
