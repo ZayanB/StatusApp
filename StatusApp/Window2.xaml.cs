@@ -42,6 +42,7 @@ namespace StatusApp
                     if (!_isSelected)
                     {
                         Parent?.DeselectIfAnyChildIsDeselected();
+
                     }
                 }
             }
@@ -152,7 +153,6 @@ namespace StatusApp
                     SelectAllItems(item.Children, isSelected);
                 }
             }
-
         }
 
     }
@@ -160,7 +160,6 @@ namespace StatusApp
     {
         private static readonly string AppDirectory = AppDomain.CurrentDomain.BaseDirectory;
         private static readonly string ConfigFilePath = Path.Combine(AppDirectory, "config2.json");
-        //private static readonly string ConfigFilePath = Path.Combine(AppDirectory, "config4.json");
 
         private int BackupFolderCount = 0;
         private int BackupFileCount = 0;
@@ -220,7 +219,6 @@ namespace StatusApp
             {
                 if (!deploymentMethods.IsDirectoryEmpty(ConfigData.sourceFolder))
                 {
-
                     DateTime timestamp = deploymentMethods.CreateBackupInstance(ConfigData.backupFolder);
 
                     BackupDestination(timestamp);
@@ -241,7 +239,7 @@ namespace StatusApp
 
                     txtCopyCount.Content = copyLabelContent;
 
-                    //deploymentMethods.CreateBackupSource(ConfigData.sourceFolder, ConfigData.backupFolder, timestamp); //Comment to not empty source
+                    deploymentMethods.CreateBackupSource(ConfigData.sourceFolder, ConfigData.backupFolder, timestamp); //Comment to not empty source
 
                     BackupFolderCount = 0;
                     BackupFileCount = 0;
@@ -337,11 +335,13 @@ namespace StatusApp
         private void LoadDirectoryForUI()
         {
             string directoryPath = ConfigData.destinationFolders[0].path;
+
             if (Directory.Exists(directoryPath))
             {
-                var directoryItems = fileSystemItem.LoadDirectory(directoryPath, null);
-                DirectoryTreeView.ItemsSource = directoryItems;
+                DirectoryItems = fileSystemItem.LoadDirectory(directoryPath, null);
+                DirectoryTreeView.ItemsSource = DirectoryItems;
             }
+
         }
 
         private bool IsUnwantedItemsEmpty()
@@ -401,6 +401,17 @@ namespace StatusApp
 
         private void CheckBox_Checked(object sender, RoutedEventArgs e)
         {
+            CheckBoxChangedState();
+        }
+
+        private void CheckBox_Unchecked(object sender, RoutedEventArgs e)
+        {
+            CheckBoxChangedState();
+            if (SelectAllCheckbox.IsChecked == true) { SelectAllCheckbox.IsChecked = false; }
+        }
+
+        private void CheckBoxChangedState()
+        {
             string basePath = ConfigData.destinationFolders[0].path;
 
             List<string> destinationPaths = new List<string>();
@@ -415,23 +426,11 @@ namespace StatusApp
 
             DestinationUnwantedItems = fileSystemItem.GetUnwantedItems(selectedItems, destinationPaths, basePath);
         }
-
-
-
         private void CheckBox_Checked_Select_All(object sender, RoutedEventArgs e)
         {
             fileSystemItem.SelectAllItems(DirectoryTreeView.ItemsSource as ObservableCollection<FileSystemItem>, true);
 
         }
-
-        private void SelectAll_CheckBox_Unchecked(object sender, RoutedEventArgs e)
-        {
-
-            fileSystemItem.SelectAllItems(DirectoryTreeView.ItemsSource as ObservableCollection<FileSystemItem>, false);
-
-        }
-
-
         private void ClearSelectAllCheckBox()
         {
             SelectAllCheckbox.IsChecked = false;

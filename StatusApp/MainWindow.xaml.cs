@@ -20,7 +20,6 @@ namespace StatusApp
 
         private static readonly string AppDirectory = AppDomain.CurrentDomain.BaseDirectory;
         private static readonly string ConfigFilePath = Path.Combine(AppDirectory, "config.json");
-        //private static readonly string ConfigFilePath = Path.Combine(AppDirectory, "config3.json");
 
         private static string ApplicationChoice;
 
@@ -88,7 +87,6 @@ namespace StatusApp
             SourceFolderLabel.Content = ConfigData.sourceFolder;
             BackupFolderLabel.Content = ConfigData.backupFolder;
             deploymentMethods.AddDestinationLabels(ConfigData.destinationFolders, DestinationLabelsPanel);
-
 
             bool checkFolders = deploymentMethods.CheckFolders(ConfigData.sourceFolder, ConfigData.backupFolder, ConfigData.destinationFolders);
             if (!checkFolders) { Application.Current.Shutdown(); }
@@ -202,6 +200,7 @@ namespace StatusApp
             txtReplacedCount.Content = $" Replaced {ReplacedFolderCount} Folders & {ReplacedFileCount} Files";
         }
 
+        //rollback buttons
         private void rollbackBtn_Click(object sender, RoutedEventArgs e)
         {
             string rollbackPath = BackupDropdown.SelectedValue.ToString();
@@ -209,13 +208,10 @@ namespace StatusApp
             MessageBoxResult result = MessageBox.Show($"Are you sure you want to rollback backup {Path.GetFileName(rollbackPath)} back to {DeploymentMethods.DestinationFolderName}?", "Confirmation", MessageBoxButton.YesNo, MessageBoxImage.Question);
             if (result == MessageBoxResult.Yes)
             {
-                //deploymentMethods.Rollback(ConfigData, rollbackPath);
                 deploymentMethods.Rollback(ConfigData.backupFolder, rollbackPath, ConfigData.destinationFolders);
             }
 
         }
-
-        //drodown menu methods
 
         private void showRollbackBtn_Click(object sender, RoutedEventArgs e)
         {

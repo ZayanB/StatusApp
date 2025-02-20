@@ -129,7 +129,7 @@ namespace StatusApp
 
         }
 
-        public (List<string>, int backupsTodelete) GetUnwantedBackups(List<string> backups, int keepBackupsCount)
+        public (List<string>, int backupsTodelete) GetUnwantedBackups(List<string> backups, int keepBackupsCount)//1
         {
             backups = backups.Skip(keepBackupsCount).ToList();
 
@@ -182,7 +182,7 @@ namespace StatusApp
         }
 
         //methods that copy source to destination and update counts
-        public (int createdFolderCount, int createdFileCount) CopySourceToDestination(string sourceFolder, List<Destinations> destinationFolders)
+        public (int createdFolderCount, int createdFileCount) CopySourceToDestination(string sourceFolder, List<Destinations> destinationFolders)//1
         {
             int createdFolderCount = 0;
             int createdFileCount = 0;
@@ -204,7 +204,7 @@ namespace StatusApp
             return (createdFolderCount, createdFileCount);
         }
 
-        public (int createdFolderCount, int createdFileCount) CopyDirectory(string originDir, string targetDir, bool isFirstIteration)
+        public (int createdFolderCount, int createdFileCount) CopyDirectory(string originDir, string targetDir, bool isFirstIteration)//2
         {
             int createdFolderCount = 0, createdFileCount = 0;
 
@@ -245,7 +245,7 @@ namespace StatusApp
             return (createdFolderCount, createdFileCount);
         }
 
-        public (int backupFolderCount, int backupFileCount) BackupFiles(string sourceDir, string destDir, string item, string backupLogFile, bool isFirstIteration)
+        public (int backupFolderCount, int backupFileCount) BackupFiles(string sourceDir, string destDir, string item, string backupLogFile, bool isFirstIteration)//3
         {
             int backupFolderCount = 0, backupFileCount = 0;
 
@@ -319,7 +319,6 @@ namespace StatusApp
         }
 
         //methods that rollback backups to destination folders
-
         public void Rollback(string backupFolderPath, string backupFolder, List<Destinations> destinationFolders)
         {
             string backupPath = Path.Combine(backupFolder, DestinationFolderName);
@@ -366,7 +365,7 @@ namespace StatusApp
 
         }
 
-        public (int deletedFolderCount, int deletedFileCount) DeleteItems(List<string> itemsToDelete)
+        public (int deletedFolderCount, int deletedFileCount) DeleteItems(List<string> itemsToDelete)//4
         {
 
             int deletedFolderCount = 0, deletedFileCount = 0;
@@ -391,7 +390,7 @@ namespace StatusApp
             return (deletedFolderCount, deletedFileCount);
         }
 
-        private (int deletedFileCount, int deletedFolderCount) DeleteDirectory(string directoryPath)
+        private (int deletedFileCount, int deletedFolderCount) DeleteDirectory(string directoryPath)//5
         {
             int fileCount = 0, folderCount = 0;
 
