@@ -8,8 +8,9 @@ namespace StatusApp
     public class DeploymentMethods
     {
         public static readonly string BackupFolderName = "Backup";
-        private static readonly string DestinationFolderName = "Destination";
+        public static readonly string DestinationFolderName = "Destination";
         private static readonly string RollbackFile = "Rollback Log.txt";
+        public static readonly string SourceFolderName = "Source";
 
         //method to check if directories exist at paths
         public bool CheckFolders(string sourceFolder, string backupFolder, List<Destinations> destinationFolders)
@@ -113,7 +114,7 @@ namespace StatusApp
                     if (result2 == MessageBoxResult.Yes)
                     {
 
-                        var backupsToDelete=GetUnwantedBackups(backups,keepBackupsCount);
+                        var backupsToDelete = GetUnwantedBackups(backups, keepBackupsCount);
                         List<string> backupToDeletePaths = backupsToDelete.Item1;
                         int backupToDeleteCount = backupsToDelete.Item2;
 

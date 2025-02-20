@@ -366,7 +366,7 @@ namespace StatusApp
             string rollbackPath = BackupDropdown.SelectedValue.ToString();
 
 
-            MessageBoxResult result = deploymentMethods.GetMessageBoxResult($"Are you sure you want to rollback backup {Path.GetFileName(rollbackPath)} back to {DestinationFolderName}?");
+            MessageBoxResult result = deploymentMethods.GetMessageBoxResult($"Are you sure you want to rollback backup {Path.GetFileName(rollbackPath)} back to {DeploymentMethods.DestinationFolderName}?");
             if (result == MessageBoxResult.Yes)
             {
                 deploymentMethods.Rollback(ConfigData.backupFolder, rollbackPath, ConfigData.destinationFolders);
