@@ -196,8 +196,12 @@ namespace StatusApp
                 }
                 else
                 {
+                    
                     deploymentMethods.ShowMessageBox($"Configuration File not found at {ConfigFilePath}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+
                     Application.Current.Shutdown();
+
+
                 }
             }
             catch (Exception ex)
